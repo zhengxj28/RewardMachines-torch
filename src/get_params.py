@@ -91,30 +91,30 @@ def get_params_water_world(experiment, use_rs):
     step_unit = 1000
 
     # configuration of testing params
-    testing_params = TestingParameters()
-    testing_params.test = True
-    testing_params.test_freq = 10 * step_unit
-    testing_params.num_steps = 600  # I'm giving one minute to the agent to solve the task
+    testing_params = TestingParameters(
+        test=True,
+        test_freq=10 * step_unit,
+        num_steps=600
+    )
 
     # configuration of learning params
-    learning_params = LearningParameters()
-    learning_params.lr = 1e-5  # 5e-5 seems to be better than 1e-4
-    learning_params.gamma = 0.9
-    learning_params.max_timesteps_per_task = testing_params.num_steps
-    learning_params.buffer_size = 50000
-    learning_params.print_freq = step_unit
-    learning_params.train_freq = 1
-    learning_params.batch_size = 32
-    learning_params.target_network_update_freq = 100  # obs: 500 makes learning more stable, but slower
-    learning_params.learning_starts = 1000
-
-    # Tabular case
-    learning_params.tabular_case = False  # it is not possible to use tabular RL in the water world
-    learning_params.use_random_maps = False
-    learning_params.use_double_dqn = True
-    learning_params.prioritized_replay = True
-    learning_params.num_hidden_layers = 6
-    learning_params.num_neurons = 64
+    learning_params = LearningParameters(
+        lr=1e-5,  # 5e-5 seems to be better than 1e-4
+        gamma=0.9,
+        max_timesteps_per_task=testing_params.num_steps,
+        buffer_size=50000,
+        print_freq=step_unit,
+        train_freq=1,
+        batch_size=32,
+        target_network_update_freq=100,  # obs: 500 makes learning more stable, but slower
+        learning_starts=1000,
+        tabular_case=False,
+        use_random_maps=False,
+        use_double_dqn=True,
+        prioritized_replay=True,
+        num_hidden_layers=6,
+        num_neurons=64
+    )
 
     # Setting the experiment
     tester = Tester(learning_params, testing_params, experiment, use_rs)

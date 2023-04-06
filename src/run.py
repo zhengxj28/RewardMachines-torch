@@ -1,7 +1,9 @@
 import argparse, os.path
 from src.algos.qrm import run_qrm_experiments
 from get_params import *
+
 # The pickle library is asking me to have access to Ball and BallAgent from the main...
+from src.worlds.water_world import Ball, BallAgent
 
 
 def run_experiment(world, alg_name, num_times, use_rs, show_print):

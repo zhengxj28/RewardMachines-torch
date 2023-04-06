@@ -3,6 +3,8 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/src/baselines" />
+      <excludeFolder url="file://$MODULE_DIR$/tmp/craftworld" />
+      <excludeFolder url="file://$MODULE_DIR$/tmp/waterworld" />
     </content>
     <orderEntry type="jdk" jdkName="Base_RL_torch" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

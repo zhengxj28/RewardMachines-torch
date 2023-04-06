@@ -30,8 +30,9 @@ class QRMAgent:
         policies_to_add = self.decompose_reward_machines(reward_machines)
         print("Decomposing RMs is done! (in %0.2f minutes)" % ((time.time() - t_i) / 60))
         self.num_policies = len(policies_to_add)
-        self.qrm_net = QRMNet(self.num_features, self.num_actions, self.num_policies)
-        self.tar_qrm_net = QRMNet(self.num_features, self.num_actions, self.num_policies)
+
+        self.qrm_net = QRMNet(self.num_features, self.num_actions, self.num_policies, learning_params)
+        self.tar_qrm_net = QRMNet(self.num_features, self.num_actions, self.num_policies, learning_params)
         self.buffer = ReplayBuffer(learning_params.buffer_size)
         if learning_params.tabular_case:
             self.optimizer = optim.SGD(self.qrm_net.parameters(), lr=learning_params.lr)
@@ -150,7 +151,8 @@ class QRMAgent:
         done = torch.zeros_like(NPs)
         done[NPs == 0] = 1  # NPs[i]==0 means terminal state
 
-        Q = self.qrm_net(S1)[:, :, A].squeeze(2)
+        ind = torch.LongTensor(range(A.shape[0]))
+        Q = self.qrm_net(S1)[ind, :, A]
         gamma = self.learning_params.gamma
 
         # TODO: check Q_tar is correct or not

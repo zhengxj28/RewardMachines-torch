@@ -31,7 +31,6 @@ class WaterWorldParams:
 
 
 class WaterWorld:
-
     def __init__(self, params):
         self.params = params
         self.use_velocities = params.use_velocities
@@ -246,7 +245,7 @@ class WaterWorld:
         if self.use_velocities:
             agent, balls = self.agent, self.balls
             n_features = 4 + len(balls) * 4
-            features = np.zeros(n_features, dtype=np.float)
+            features = np.zeros(n_features, dtype=float)
 
             pos_max = np.array([float(self.params.max_x), float(self.params.max_y)])
             vel_max = float(self.params.b_velocity + self.params.a_vel_max)
@@ -397,8 +396,8 @@ class Ball:
         self.pos = self.pos + elapsedTime * self.vel
 
     def update(self, pos, vel):
-        self.pos = np.array(pos, dtype=np.float)
-        self.vel = np.array(vel, dtype=np.float)
+        self.pos = np.array(pos, dtype=float)
+        self.vel = np.array(vel, dtype=float)
 
     def is_colliding(self, ball):
         d = np.linalg.norm(self.pos - ball.pos, ord=2)
