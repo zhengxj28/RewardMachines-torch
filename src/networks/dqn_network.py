@@ -8,9 +8,12 @@ class QRMNet(nn.Module):
         super().__init__()
         self.qrm_net = nn.ModuleList()
         self.num_policies = num_policies
-        for _ in range(num_policies):
+        for i in range(num_policies):
             layer = nn.Linear(num_input, num_output, bias=False)
-            nn.init.constant_(layer.weight, 1.0)
+            if i == 0:
+                nn.init.constant_(layer.weight, 0.0)  # constant policy
+            else:
+                nn.init.constant_(layer.weight, 1.0)
             self.qrm_net.append(layer)
 
     def forward(self, state):
@@ -21,7 +24,6 @@ class QRMNet(nn.Module):
         q_values = torch.stack(q_values, dim=1)
         # dims of q_values: (batch_size, num_policies, num_actions)
         return q_values
-
 
 # def create_net(x, num_input, num_output, num_neurons, num_hidden_layers):
 #     weights = []

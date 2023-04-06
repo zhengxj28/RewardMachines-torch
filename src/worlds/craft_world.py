@@ -3,7 +3,7 @@ if __name__ == '__main__':
     import sys
     sys.path.insert(0, '../')
 
-from worlds.game_objects import *
+from src.worlds.game_objects import *
 import random, math, os
 import numpy as np
 
@@ -49,8 +49,8 @@ class CraftWorld:
         if action_succeeded:
             agent.change_position(ni,nj)
 
-    def get_state(self):
-        return None # we are only using "simple reward machines" for the craft domain
+    # def get_state(self):
+    #     return None # we are only using "simple reward machines" for the craft domain
 
     def _get_next_position(self, action, movement_noise):
         """

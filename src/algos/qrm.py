@@ -1,7 +1,10 @@
-import random, time
-from src.worlds.game import *
+import random
+import time
+import copy
+
 from src.agents.qrm_agent import QRMAgent
 from src.tester.saver import Saver
+from src.worlds.game import *
 
 
 def run_qrm_experiments(alg_name, tester, curriculum, num_times, show_print):
@@ -54,68 +57,60 @@ def run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print):
     num_steps = learning_params.max_timesteps_per_task
     rm = reward_machines[task_rm_id]
     env = Game(task_params, rm)
+    qrm_agent.set_rm(task_rm_id)
     training_reward = 0
     # Getting the initial state of the environment and the reward machine
     s1 = env.reset()
-    u1 = rm.get_initial_state()
 
     # Starting interaction with the environment
-    if show_print: print("Executing", num_steps)
+    if show_print: print("Executing Task", task_rm_id)
     for t in range(num_steps):
-
-        # Choosing an action to perform
-        a = qrm_agent.get_action(task_rm_id, u1, s1)
-
-        # updating the curriculum
         curriculum.add_step()
+        a = qrm_agent.get_action(s1)
+        # do not use reward from env to learn
+        s2, env_reward, done, events = env.step(a)
 
-        # Executing the action
-        s2, env_reward, done, _ = env.step(a)  # do not use reward from env
-
-        events = env.get_true_propositions()
-        u2 = rm.get_next_state(u1, events)
-        reward = rm.get_reward(u1, u2, s1, a, s2)
-        training_reward += reward
-
-        # Getting rewards and next states for each reward machine
-        rewards, next_states = [], []
+        # Getting rewards and next states for each reward machine to learn
+        rewards, next_policies = [], []
         for j in range(len(reward_machines)):
             j_rewards, j_next_states = reward_machines[j].get_rewards_and_next_states(s1, a, s2, events)
             rewards.append(j_rewards)
-            next_states.append(j_next_states)
+            next_policies.append(j_next_states)
         # Mapping rewards and next states to specific policies in the policy bank
         rewards = qrm_agent.map_rewards(rewards)
-        next_policies = qrm_agent.map_next_policies(next_states)
+        next_policies = qrm_agent.map_next_policies(next_policies)
+
+        qrm_agent.update_rm_state(events)
 
         # Adding this experience to the experience replay buffer
         qrm_agent.buffer.add_data(s1, a, s2, rewards, next_policies, done)
 
         # Learning
         cur_step = curriculum.get_current_step()
-        if cur_step > learning_params.learning_starts and cur_step % learning_params.train_freq == 0:
-            qrm_agent.learn()
+        if cur_step > learning_params.learning_starts:
+            if cur_step % learning_params.train_freq == 0:
+                qrm_agent.learn()
+            # Updating the target network
+            if cur_step % learning_params.target_network_update_freq == 0:
+                qrm_agent.update_target_network()
 
             # if learning_params.prioritized_replay:
             #     new_priorities = abs_td_errors + learning_params.prioritized_replay_eps
             #     replay_buffer.update_priorities(batch_idxes, new_priorities)
 
-        # Updating the target network
-        if cur_step > learning_params.learning_starts and cur_step % learning_params.target_network_update_freq == 0:
-            qrm_agent.update_target_network()
-
         # Printing
+        training_reward += env_reward
         if show_print and (t + 1) % learning_params.print_freq == 0:
             print("Step:", t + 1, "\tTotal reward:", training_reward)
 
         # Testing
-        # if testing_params.test and curriculum.get_current_step() % testing_params.test_freq == 0:
-        #     tester.run_test(curriculum.get_current_step(), sess, run_qrm_test, policy_bank, num_features)
+        if testing_params.test and cur_step % testing_params.test_freq == 0:
+            tester.run_test(cur_step, run_qrm_test, qrm_agent)
 
         # Restarting the environment (Game Over)
         if done:
             s2 = env.reset()
-            u2 = rm.get_initial_state()
-
+            qrm_agent.set_rm(task_rm_id)
             if curriculum.stop_task(t):
                 break
 
@@ -124,38 +119,29 @@ def run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print):
             break
 
         # Moving to the next state
-        s1, u1 = s2, u2
+        s1 = s2
 
     if show_print: print("Done! Total reward:", training_reward)
 
 
-def run_qrm_test(reward_machines, task_params, task_rm_id, learning_params, testing_params, policy_bank,
-                 num_features):
+def run_qrm_test(reward_machines, task_params, task_rm_id, testing_params, qrm_agent):
     # Initializing parameters
-    task = Game(task_params)
     rm = reward_machines[task_rm_id]
-    s1, s1_features = task.get_state_and_features()
-    u1 = rm.get_initial_state()
+    env = Game(task_params, rm)
+    s1 = env.reset()
+    qrm_agent.set_rm(task_rm_id, eval_mode=True)
 
     # Starting interaction with the environment
     r_total = 0
     for t in range(testing_params.num_steps):
-        # Choosing an action using the right policy
-        a = policy_bank.get_best_action(task_rm_id, u1, s1_features.reshape((1, num_features)), add_noise=False)
-
-        # Executing the action
-        task.execute_action(a)
-        s2, s2_features = task.get_state_and_features()
-        u2 = rm.get_next_state(u1, task.get_true_propositions())
-        r = rm.get_reward(u1, u2, s1, a, s2, is_training=False)
-
-        r_total += r * learning_params.gamma ** t
-
+        a = qrm_agent.get_action(s1, eval_mode=True)
+        s2, env_reward, done, events = env.step(a)
+        qrm_agent.update_rm_state(events, eval_mode=True)
+        r_total += env_reward
         # Restarting the environment (Game Over)
-        if task.is_env_game_over() or rm.is_terminal_state(u2):
+        if done:
             break
-
         # Moving to the next state
-        s1, s1_features, u1 = s2, s2_features, u2
+        s1 = s2
 
     return r_total

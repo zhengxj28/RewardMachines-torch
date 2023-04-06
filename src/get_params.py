@@ -8,23 +8,24 @@ def get_params_craft_world(experiment, use_rs):
     step_unit = 1000
 
     # configuration of testing params
-    testing_params = TestingParameters(test=True,
-                                       test_freq=10 * step_unit,
-                                       num_steps=1000)
+    testing_params = TestingParameters(
+        test=True,
+        test_freq=10 * step_unit,
+        num_steps=1000
+    )
 
     # configuration of learning params
-    learning_params = LearningParameters()
-    learning_params.gamma = 0.9
-    learning_params.print_freq = step_unit
-    learning_params.train_freq = 1
-    learning_params.tabular_case = True
-    learning_params.max_timesteps_per_task = testing_params.num_steps
-
-    # This are the parameters that tabular q-learning would use to work as 'tabular q-learning'
-    learning_params.lr = 1
-    learning_params.batch_size = 1
-    learning_params.learning_starts = 1
-    learning_params.buffer_size = 1
+    learning_params = LearningParameters(
+        gamma=0.9,
+        print_freq=step_unit,
+        train_freq=1,
+        tabular_case=True,
+        max_timesteps_per_task=testing_params.num_steps,
+        lr=1,
+        batch_size=1,
+        buffer_size=1,
+        learning_starts=1,
+    )
 
     # Setting the experiment
     tester = Tester(learning_params, testing_params, experiment, use_rs)

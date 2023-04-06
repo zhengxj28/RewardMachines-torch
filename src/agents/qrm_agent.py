@@ -15,12 +15,18 @@ class QRMAgent:
     """
 
     def __init__(self, num_features, num_actions, learning_params, reward_machines, curriculum):
-        self.num_actions = num_actions
         self.num_features = num_features
+        self.num_actions = num_actions
         self.learning_params = learning_params
+        self.reward_machines = reward_machines  # all reward machines
+        self.rm_id = None  # current reward machine
+        self.u = None  # current state of current reward machine
+        self.rm_id_eval = None  # current reward machine while evaluating
+        self.u_eval = None  # current state of current reward machine while evaluating
         self.curriculum = curriculum
         # Decomposing reward machines: We learn one policy per state in a reward machine
         t_i = time.time()
+        self.state2policy = {}
         policies_to_add = self.decompose_reward_machines(reward_machines)
         print("Decomposing RMs is done! (in %0.2f minutes)" % ((time.time() - t_i) / 60))
         self.num_policies = len(policies_to_add)
@@ -33,11 +39,9 @@ class QRMAgent:
             self.optimizer = optim.Adam(self.qrm_net.parameters(), lr=learning_params.lr)
 
     def decompose_reward_machines(self, reward_machines):
-        self.reward_machines = reward_machines
         # Some machine states might have equivalent Q-functions
         # In those cases, we learn only one policy for them
         policies_to_add = []
-        self.state2policy = {}
         # We add_data one constant policy for every terminal state
         policies_to_add.append("constant")  # terminal policy has id '0'
         # Associating policies to each machine state
@@ -64,6 +68,14 @@ class QRMAgent:
                         policies_to_add.append("machine" + str(i) + "_state" + str(ui))
                     self.state2policy[(i, ui)] = policy_id
         return policies_to_add
+
+    def set_rm(self, rm_id, eval_mode=False):
+        if eval_mode:
+            self.rm_id_eval = rm_id
+            self.u_eval = self.reward_machines[self.rm_id_eval].get_initial_state()
+        else:
+            self.rm_id = rm_id
+            self.u = self.reward_machines[self.rm_id].get_initial_state()
 
     # def add_policies(self, policies_to_add):
     #     # creating individual networks per policy
@@ -129,34 +141,51 @@ class QRMAgent:
         return next_policies
 
     def learn(self):
-        S1, A, S2, Rs, NPs, done = self.buffer.sample(self.learning_params.batch_size)
+        S1, A, S2, Rs, NPs, _ = self.buffer.sample(self.learning_params.batch_size)
         S1 = torch.Tensor(S1)
         A = torch.LongTensor(A)
         S2 = torch.Tensor(S2)
         Rs = torch.Tensor(Rs)
-        NPs = torch.LongTensor(NPs)
-        done = torch.Tensor(done)
+        NPs = torch.LongTensor(NPs)  # next policies
+        done = torch.zeros_like(NPs)
+        done[NPs == 0] = 1  # NPs[i]==0 means terminal state
 
-        Q = self.qrm_net(S1)[:, :, A]
+        Q = self.qrm_net(S1)[:, :, A].squeeze(2)
+        gamma = self.learning_params.gamma
 
         # TODO: check Q_tar is correct or not
-        Q_tar_all = torch.max(self.tar_qrm_net(S2).detach(), dim=2)[0]
-        Q_tar = torch.gather(Q_tar_all, dim=1, index=NPs).unsqueeze(dim=2)
-        gamma = self.learning_params.gamma
-        loss = nn.MSELoss()(Q, Rs + gamma * Q_tar * (1-done))
+        with torch.no_grad():
+            Q_tar_all = torch.max(self.tar_qrm_net(S2), dim=2)[0]
+            Q_tar = torch.gather(Q_tar_all, dim=1, index=NPs)
+
+        loss = torch.Tensor([0.0])
+        for i in range(self.num_policies):
+            loss += 0.5 * nn.MSELoss()(Q[:, i], Rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
+
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-    def get_action(self, rm_id, u, s):
-        if random.random() < self.learning_params.epsilon:
+    def get_action(self, s, eval_mode=False):
+        if eval_mode:
+            policy_id = self.state2policy[(self.rm_id_eval, self.u_eval)]
+            s = torch.Tensor(s).view(1, -1)
+            q_value = self.qrm_net(s).detach()[:, policy_id].squeeze()
+            a = torch.argmax(q_value).item()
+        elif random.random() < self.learning_params.epsilon:
             a = random.choice(range(self.num_actions))
         else:
-            policy_id = self.state2policy[(rm_id, u)]
+            policy_id = self.state2policy[(self.rm_id, self.u)]
             s = torch.Tensor(s).view(1, -1)
-            q_value = self.qrm_net(s)[:, policy_id].squeeze()
+            q_value = self.qrm_net(s).detach()[:, policy_id].squeeze()
             a = torch.argmax(q_value).item()
         return int(a)
+
+    def update_rm_state(self, events, eval_mode=False):
+        if eval_mode:
+            self.u_eval = self.reward_machines[self.rm_id_eval].get_next_state(self.u_eval, events)
+        else:
+            self.u = self.reward_machines[self.rm_id].get_next_state(self.u, events)
 
 
 class ReplayBuffer(object):

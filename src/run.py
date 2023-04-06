@@ -75,7 +75,7 @@ if __name__ == "__main__":
     world = args.world
     map_id = args.map
     num_times = args.num_times
-    # show_print = args.verbosity is not None
-    show_print = True
+    show_print = args.verbosity is not None
+    # show_print = True
     use_rs = alg_name.endswith("-rs")
     run_experiment(world, alg_name, num_times, use_rs, show_print)
