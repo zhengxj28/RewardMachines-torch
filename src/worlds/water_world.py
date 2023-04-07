@@ -337,6 +337,7 @@ class WaterWorld:
 
     def load_state(self, filename):
         # Load the agent and balls positions and velocities
+        # TODO: filename is not an absolute path
         with open(filename, 'rb') as input:
             self.agent = pickle.load(input)
             self.balls = pickle.load(input)

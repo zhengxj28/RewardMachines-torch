@@ -182,6 +182,7 @@ class CraftWorld:
         # loading the map
         self.map_array = []
         self.class_ids = {} # I use the lower case letters to define the features
+        # TODO: file_map is not an absolute path
         f = open(file_map)
         i,j = 0,0
         for l in f:

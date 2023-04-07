@@ -1,4 +1,10 @@
-import argparse, os.path
+import argparse, os, sys
+
+file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
+# sys.path.append(file_path)
+# sys.path.append(os.path.join(file_path, "worlds"))
+sys.path.append(os.path.join(file_path, ".."))  # abs project path
+
 from src.algos.qrm import run_qrm_experiments
 from get_params import *
 
@@ -43,10 +49,6 @@ def run_experiment(world, alg_name, num_times, use_rs, show_print):
 
 
 if __name__ == "__main__":
-    file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
-    # sys.path.append(file_path)
-    # sys.path.append(os.path.join(file_path, "worlds"))
-    # sys.path.append(os.path.join(file_path, ".."))
     # EXAMPLE: python3 run.py --algorithm="qrm" --world="craft" --map=0 --num_times=1
 
     # Getting params

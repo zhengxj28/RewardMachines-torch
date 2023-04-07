@@ -18,7 +18,7 @@ def run_qrm_experiments(alg_name, tester, curriculum, num_times, show_print):
         # Setting the random seed to 't'
         random.seed(t)
 
-        # Reseting default values
+        # Resetting default values
         curriculum.restart()
 
         task_aux = Game(tester.get_task_params(curriculum.get_current_task()), None)

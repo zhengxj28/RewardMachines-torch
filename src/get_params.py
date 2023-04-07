@@ -38,6 +38,7 @@ def get_params_craft_world(experiment, use_rs):
 
     print("Craft World ----------")
     print("TRAIN gamma:", learning_params.gamma)
+    print("epsilon: ", learning_params.epsilon)
     print("Total steps:", curriculum.total_steps)
     print("tabular_case:", learning_params.tabular_case)
     print("num_steps:", testing_params.num_steps)
@@ -79,7 +80,7 @@ def get_params_office_world(experiment, use_rs):
 
     print("Office World ----------")
     print("TRAIN gamma:", learning_params.gamma)
-    print("epsilon: ")
+    print("epsilon: ", learning_params.epsilon)
     print("tabular_case:", learning_params.tabular_case)
     print("num_steps:", testing_params.num_steps)
     print("total_steps:", curriculum.total_steps)
