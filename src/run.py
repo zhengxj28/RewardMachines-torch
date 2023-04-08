@@ -1,8 +1,7 @@
 import argparse, os, sys
+import wandb
 
 file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
-# sys.path.append(file_path)
-# sys.path.append(os.path.join(file_path, "worlds"))
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
 
 from src.algos.qrm import run_qrm_experiments
@@ -12,7 +11,24 @@ from get_params import *
 from src.worlds.water_world import Ball, BallAgent
 
 
-def run_experiment(world, alg_name, num_times, use_rs, show_print):
+def run_experiment(args):
+    alg_name = args.algorithm
+    world = args.world
+    map_id = args.map
+    num_times = args.num_times
+    use_wandb = args.use_wandb
+    show_print = args.verbosity is not None
+    use_rs = alg_name.endswith("-rs")
+
+    if use_wandb:
+        wandb.init(
+            project="QRM test",
+            config={
+                "env": world,
+                "map": map_id,
+            }
+        )
+
     if world == "office":
         experiment = os.path.join("experiments", "office", "tests", "office.txt")
     else:
@@ -25,11 +41,11 @@ def run_experiment(world, alg_name, num_times, use_rs, show_print):
           show_print)
 
     if world == 'officeworld':
-        tester, curriculum = get_params_office_world(experiment, use_rs)
+        tester, curriculum = get_params_office_world(experiment, use_rs, use_wandb)
     if world == 'craftworld':
-        tester, curriculum = get_params_craft_world(experiment, use_rs)
+        tester, curriculum = get_params_craft_world(experiment, use_rs, use_wandb)
     if world == 'waterworld':
-        tester, curriculum = get_params_water_world(experiment, use_rs)
+        tester, curriculum = get_params_water_world(experiment, use_rs, use_wandb)
 
     # # Baseline 1 (standard DQN with Michael Littman's approach)
     # if alg_name == "dqn":
@@ -46,6 +62,7 @@ def run_experiment(world, alg_name, num_times, use_rs, show_print):
     # QRM
     if alg_name in ["qrm", "qrm-rs"]:
         run_qrm_experiments(alg_name, tester, curriculum, num_times, show_print)
+    if use_wandb: wandb.finish()
 
 
 if __name__ == "__main__":
@@ -65,6 +82,8 @@ if __name__ == "__main__":
                         help='This parameter indicated which map to use. It must be a number between 0 and 10.')
     parser.add_argument('--num_times', default=1, type=int,
                         help='This parameter indicated which map to use. It must be a number greater or equal to 1')
+    parser.add_argument('--use_wandb', default=0, type=int,
+                        help='This parameter indicated use wandb or not.')
     parser.add_argument("--verbosity", help="increase output verbosity")
 
     args = parser.parse_args()
@@ -74,12 +93,7 @@ if __name__ == "__main__":
     if not (0 <= args.map <= 10): raise NotImplementedError("The map must be a number between 0 and 10")
     if args.num_times < 1: raise NotImplementedError("num_times must be greater than 0")
 
+
     # Running the experiment
-    alg_name = args.algorithm
-    world = args.world
-    map_id = args.map
-    num_times = args.num_times
-    show_print = args.verbosity is not None
-    # show_print = True
-    use_rs = alg_name.endswith("-rs")
-    run_experiment(world, alg_name, num_times, use_rs, show_print)
+    run_experiment(args)
+

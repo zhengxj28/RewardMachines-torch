@@ -4,7 +4,7 @@ from common.curriculum import CurriculumLearner
 from tester.learning_params import LearningParameters
 
 
-def get_params_craft_world(experiment, use_rs):
+def get_params_craft_world(experiment, use_rs, use_wandb):
     step_unit = 1000
 
     # configuration of testing params
@@ -28,7 +28,7 @@ def get_params_craft_world(experiment, use_rs):
     )
 
     # Setting the experiment
-    tester = Tester(learning_params, testing_params, experiment, use_rs)
+    tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
 
     # Setting the curriculum learner
     curriculum = CurriculumLearner(tester.get_task_rms())
@@ -47,7 +47,7 @@ def get_params_craft_world(experiment, use_rs):
     return tester, curriculum
 
 
-def get_params_office_world(experiment, use_rs):
+def get_params_office_world(experiment, use_rs, use_wandb):
     step_unit = 500
 
     # configuration of testing params
@@ -70,7 +70,7 @@ def get_params_office_world(experiment, use_rs):
     )
 
     # Setting the experiment
-    tester = Tester(learning_params, testing_params, experiment, use_rs)
+    tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
 
     # Setting the curriculum learner
     curriculum = CurriculumLearner(tester.get_task_rms())
@@ -88,7 +88,7 @@ def get_params_office_world(experiment, use_rs):
     return tester, curriculum
 
 
-def get_params_water_world(experiment, use_rs):
+def get_params_water_world(experiment, use_rs, use_wandb):
     step_unit = 1000
 
     # configuration of testing params
@@ -118,7 +118,7 @@ def get_params_water_world(experiment, use_rs):
     )
 
     # Setting the experiment
-    tester = Tester(learning_params, testing_params, experiment, use_rs)
+    tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
 
     # Setting the curriculum learner
     curriculum = CurriculumLearner(tester.get_task_rms())

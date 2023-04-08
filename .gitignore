@@ -3,3 +3,4 @@
 /src/baselines
 .idea/
 *.pyc
+/src/wandb

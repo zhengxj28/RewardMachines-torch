@@ -5,15 +5,17 @@ from src.reward_machines.reward_machine import RewardMachine
 from src.tester.test_utils import read_json, get_precentiles_str, get_precentiles_in_seconds, reward2steps
 import numpy as np
 import time, os
+import wandb
 
 
 class Tester:
-    def __init__(self, learning_params, testing_params, experiment, use_rs, result_file=None):
+    def __init__(self, learning_params, testing_params, experiment, use_rs, use_wandb, result_file=None):
         if result_file is None:  # in this case, we are running a new experiment
             self.learning_params = learning_params
             self.testing_params = testing_params
             # Reading the file
             self.experiment = experiment
+            self.use_wandb = use_wandb
             f = open(experiment)
             lines = [l.rstrip() for l in f]
             f.close()
@@ -99,7 +101,7 @@ class Tester:
         # 'test_function' parameters should be (sess, task_params, learning_params, testing_params, *test_args)
         # and returns the reward
         reward_machines = self.get_reward_machines()
-        aux = []
+        rewards_of_each_task = []
         for task_specification in self.get_task_specifications():
             task_str = str(task_specification)
             task_params = self.get_task_params(task_specification)
@@ -116,13 +118,20 @@ class Tester:
                 reward = 0 if id_step < 0 else self.results[task_str][self.steps[id_step]][-1]
                 # print("Skiped reward is", reward)
             self.results[task_str][step].append(reward)
-            aux.append(reward)
+            rewards_of_each_task.append(reward)
         # print("Testing: %0.1f" % (time.time() - t_init),
         #       "seconds\tTotal: %d" % sum([(r if r > 0 else self.testing_params.num_steps) for r in reward2steps(aux)]))
         # print("\t".join(["%d" % (r) for r in reward2steps(aux)]))
         print("Steps: %d\tTesting: %0.1f" % (step, time.time() - t_init),
-              "seconds\tTotal Reward: %0.1f" % sum(aux))
-        print("\t".join(["%0.1f" % (r) for r in aux]))
+              "seconds\tTotal Reward: %0.1f" % sum(rewards_of_each_task))
+        print("\t".join(["%0.1f" % (r) for r in rewards_of_each_task]))
+
+        log_reward = {"total": sum(rewards_of_each_task)}
+        for i in range(len(rewards_of_each_task)):
+            log_reward["task%d"%i] = rewards_of_each_task[i]
+        log_dict = {"reward": log_reward}
+
+        if self.use_wandb:  wandb.log(log_dict)
 
     def show_results(self):
         average_reward = {}
