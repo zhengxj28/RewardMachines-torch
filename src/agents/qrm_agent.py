@@ -19,21 +19,27 @@ class QRMAgent:
         self.num_actions = num_actions
         self.learning_params = learning_params
         self.reward_machines = reward_machines  # all reward machines
+        self.curriculum = curriculum
+
         self.rm_id = None  # current reward machine
         self.u = None  # current state of current reward machine
         self.rm_id_eval = None  # current reward machine while evaluating
         self.u_eval = None  # current state of current reward machine while evaluating
-        self.curriculum = curriculum
+
         # Decomposing reward machines: We learn one policy per state in a reward machine
         t_i = time.time()
         self.state2policy = {}
         policies_to_add = self.decompose_reward_machines(reward_machines)
         print("Decomposing RMs is done! (in %0.2f minutes)" % ((time.time() - t_i) / 60))
-        self.num_policies = len(policies_to_add)
+        num_policies = len(policies_to_add)
+        self.num_policies = num_policies
 
-        self.qrm_net = QRMNet(self.num_features, self.num_actions, self.num_policies, learning_params)
-        self.tar_qrm_net = QRMNet(self.num_features, self.num_actions, self.num_policies, learning_params)
-        self.buffer = ReplayBuffer(learning_params.buffer_size)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = device
+
+        self.qrm_net = QRMNet(num_features, num_actions, num_policies, learning_params).to(device)
+        self.tar_qrm_net = QRMNet(num_features, num_actions, num_policies, learning_params).to(device)
+        self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
         if learning_params.tabular_case:
             self.optimizer = optim.SGD(self.qrm_net.parameters(), lr=learning_params.lr)
         else:
@@ -77,19 +83,6 @@ class QRMAgent:
         else:
             self.rm_id = rm_id
             self.u = self.reward_machines[self.rm_id].get_initial_state()
-
-    # def add_policies(self, policies_to_add):
-    #     # creating individual networks per policy
-    #     num_policies = len(policies_to_add)
-    #     if self.learning_params.tabular_case:
-    #         return QRMNet(self.num_features, self.num_actions, num_policies)
-
-    # def get_policy(self, rm_id, rm_u):
-    #     policy_id = self.state2policy[(rm_id, rm_u)]
-    #     return self.policies[policy_id]
-
-    # def get_number_of_policies(self):
-    #     return len(self.policies)
 
     def update_target_network(self):
         self.tar_qrm_net.load_state_dict(self.qrm_net.state_dict())
@@ -142,45 +135,41 @@ class QRMAgent:
         return next_policies
 
     def learn(self):
-        S1, A, S2, Rs, NPs, _ = self.buffer.sample(self.learning_params.batch_size)
-        S1 = torch.Tensor(S1)
-        A = torch.LongTensor(A)
-        S2 = torch.Tensor(S2)
-        Rs = torch.Tensor(Rs)
-        NPs = torch.LongTensor(NPs)  # next policies
-        done = torch.zeros_like(NPs)
-        done[NPs == 0] = 1  # NPs[i]==0 means terminal state
+        s1, a, s2, rs, nps, _ = self.buffer.sample(self.learning_params.batch_size)
+        done = torch.zeros_like(nps, device=self.device)
+        done[nps == 0] = 1  # NPs[i]==0 means terminal state
 
-        ind = torch.LongTensor(range(A.shape[0]))
-        Q = self.qrm_net(S1)[ind, :, A]
+        ind = torch.LongTensor(range(a.shape[0]))
+        Q = self.qrm_net(s1)[ind, :, a.squeeze(1)]
         gamma = self.learning_params.gamma
 
         # TODO: check Q_tar is correct or not
         with torch.no_grad():
-            Q_tar_all = torch.max(self.tar_qrm_net(S2), dim=2)[0]
-            Q_tar = torch.gather(Q_tar_all, dim=1, index=NPs)
+            Q_tar_all = torch.max(self.tar_qrm_net(s2), dim=2)[0]
+            Q_tar = torch.gather(Q_tar_all, dim=1, index=nps)
 
-        loss = torch.Tensor([0.0])
+        loss = torch.Tensor([0.0]).to(self.device)
         for i in range(self.num_policies):
-            loss += 0.5 * nn.MSELoss()(Q[:, i], Rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
+            loss += 0.5 * nn.MSELoss()(Q[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
     def get_action(self, s, eval_mode=False):
+        device = self.device
         if eval_mode:
             policy_id = self.state2policy[(self.rm_id_eval, self.u_eval)]
-            s = torch.Tensor(s).view(1, -1)
+            s = torch.Tensor(s).view(1, -1).to(device)
             q_value = self.qrm_net(s).detach()[:, policy_id].squeeze()
-            a = torch.argmax(q_value).item()
+            a = torch.argmax(q_value).cpu().item()
         elif random.random() < self.learning_params.epsilon:
             a = random.choice(range(self.num_actions))
         else:
             policy_id = self.state2policy[(self.rm_id, self.u)]
-            s = torch.Tensor(s).view(1, -1)
+            s = torch.Tensor(s).view(1, -1).to(device)
             q_value = self.qrm_net(s).detach()[:, policy_id].squeeze()
-            a = torch.argmax(q_value).item()
+            a = torch.argmax(q_value).cpu().item()
         return int(a)
 
     def update_rm_state(self, events, eval_mode=False):
@@ -191,51 +180,55 @@ class QRMAgent:
 
 
 class ReplayBuffer(object):
-    def __init__(self, size):
-        """Create Prioritized Replay buffer.
-
-        Parameters
-        ----------
-        size: int
-            Max number of transitions to store in the buffer. When the buffer
-            overflows the old memories are dropped.
+    # TODO: prioritized replay buffer
+    def __init__(self, num_features, num_actions, num_policies, learning_params, device):
         """
-        self.storage = []
-        self.maxsize = size
+        Create (Prioritized) Replay buffer.
+        """
+        # self.storage = []
+
+        maxsize = learning_params.buffer_size
+        self.maxsize = maxsize
+        self.device = device
+        self.S1 = torch.empty([maxsize, num_features], device=device)
+        self.A = torch.empty([maxsize, 1], dtype=torch.long, device=device)
+        self.S2 = torch.empty([maxsize, num_features], device=device)
+        self.Rs = torch.empty([maxsize, num_policies], device=device)
+        self.NPs = torch.empty([maxsize, num_policies], dtype=torch.long, device=device)
+        self.Done = torch.empty([maxsize, 1], dtype=torch.long, device=device)
         self.index = 0
-        # Creating the experience replay buffer
+        self.num_datas = 0  # truly stored datas
+
         # replay_buffer, beta_schedule = create_experience_replay_buffer(learning_params.buffer_size,
         #                                                                learning_params.prioritized_replay,
         #                                                                learning_params.prioritized_replay_alpha,
         #                                                                learning_params.prioritized_replay_beta0,
         #                                                                curriculum.total_steps if learning_params.prioritized_replay_beta_iters is None else learning_params.prioritized_replay_beta_iters)
 
-    def __len__(self):
-        return len(self.storage)
-
     def add_data(self, s1, a, s2, rewards, next_policies, done):
-        data = (s1, a, s2, rewards, next_policies, done)
+        # `rewards[i]` is the reward of policy `i`
+        idx = self.index
+        self.S1[idx] = torch.Tensor(s1)
+        self.A[idx] = torch.LongTensor([a])
+        self.S2[idx] = torch.Tensor(s2)
+        self.Rs[idx] = torch.Tensor(rewards)
+        self.NPs[idx] = torch.LongTensor(next_policies)
 
-        if self.index >= len(self.storage):
-            self.storage.append(data)
-        else:
-            self.storage[self.index] = data
+        # actually QRM does not use `done` from the environment
+        # self.Done[idx] = torch.LongTensor([done])
+
         self.index = (self.index + 1) % self.maxsize
+        self.num_datas = min(self.num_datas + 1, self.maxsize)
 
-    def _encode_sample(self, idxes):
-        S1, A, S2, Rs, NPs, Done = [], [], [], [], [], []
-        for i in idxes:
-            data = self.storage[i]
-            s1, a, s2, rewards, next_policies, done = data
-            S1.append(np.array(s1, copy=False))
-            A.append(np.array(a, copy=False))
-            S2.append(np.array(s2, copy=False))
-            Rs.append(np.array(rewards, copy=False))
-            NPs.append(np.array(next_policies, copy=False))
-            Done.append(np.array(done, copy=False))
-        return np.array(S1), np.array(A), np.array(S2), np.array(Rs), np.array(NPs), np.array(Done)
 
     def sample(self, batch_size):
         """Sample a batch of experiences."""
-        idxes = [random.randint(0, len(self.storage) - 1) for _ in range(batch_size)]
-        return self._encode_sample(idxes)
+        device = self.device
+        index = torch.randint(low=0, high=self.num_datas, size=[batch_size], device=device)
+        # s1 = torch.gather(self.S1, dim=0, index=idxes)
+        s1 = self.S1[index]
+        a = self.A[index]
+        s2 = self.S2[index]
+        rs = self.Rs[index]
+        nps = self.NPs[index]
+        return s1, a, s2, rs, nps, None
