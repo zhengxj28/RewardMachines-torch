@@ -1,46 +1,30 @@
 import random
 import time
-import copy
+import wandb
 
 from src.agents.qrm_agent import QRMAgent
-from src.tester.saver import Saver
 from src.worlds.game import *
 
 
-def run_qrm_experiments(alg_name, tester, curriculum, num_times, show_print):
-    # Setting up the saver
-    saver = Saver(alg_name, tester, curriculum)
+def run_qrm_experiments(alg_name, tester, curriculum, show_print, use_cuda):
     learning_params = tester.learning_params
 
-    # Running the tasks 'num_times'
-    time_init = time.time()
-    for t in range(num_times):
-        # Setting the random seed to 't'
-        random.seed(t)
+    # Resetting default values
+    curriculum.restart()
 
-        # Resetting default values
-        curriculum.restart()
+    task_aux = Game(tester.get_task_params(curriculum.get_current_task()), None)
+    num_features = task_aux.num_features
+    num_actions = task_aux.num_actions
 
-        task_aux = Game(tester.get_task_params(curriculum.get_current_task()), None)
-        num_features = task_aux.num_features
-        num_actions = task_aux.num_actions
+    qrm_agent = QRMAgent(num_features, num_actions, learning_params, tester.get_reward_machines(), curriculum, use_cuda)
 
-        qrm_agent = QRMAgent(num_features, num_actions, learning_params, tester.get_reward_machines(), curriculum)
+    # Task loop
+    while not curriculum.stop_learning():
+        if show_print: print("Current step:", curriculum.get_current_step(), "from", curriculum.total_steps)
+        rm_file = curriculum.get_next_task()
+        # Running 'task_rm_id' for one episode
+        run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print)
 
-        # Task loop
-        while not curriculum.stop_learning():
-            if show_print: print("Current step:", curriculum.get_current_step(), "from", curriculum.total_steps)
-            rm_file = curriculum.get_next_task()
-            # Running 'task_rm_id' for one episode
-
-            run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print)
-
-        # Backing up the results
-        saver.save_results()
-
-    # Showing results
-    tester.show_results()
-    print("Time:", "%0.2f" % ((time.time() - time_init) / 60), "mins")
 
 
 def run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print):
@@ -127,6 +111,7 @@ def run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print):
 def run_qrm_test(reward_machines, task_params, task_rm_id, testing_params, qrm_agent):
     # Initializing parameters
     rm = reward_machines[task_rm_id]
+
     env = Game(task_params, rm)
     s1 = env.reset()
     qrm_agent.set_rm(task_rm_id, eval_mode=True)

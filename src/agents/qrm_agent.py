@@ -1,5 +1,4 @@
 import torch
-import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -14,7 +13,7 @@ class QRMAgent:
     This class includes a list of policies (a.k.a neural nets) for decomposing reward machines
     """
 
-    def __init__(self, num_features, num_actions, learning_params, reward_machines, curriculum):
+    def __init__(self, num_features, num_actions, learning_params, reward_machines, curriculum, use_cuda):
         self.num_features = num_features
         self.num_actions = num_actions
         self.learning_params = learning_params
@@ -34,12 +33,13 @@ class QRMAgent:
         num_policies = len(policies_to_add)
         self.num_policies = num_policies
 
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() and use_cuda else 'cpu')
         self.device = device
 
         self.qrm_net = QRMNet(num_features, num_actions, num_policies, learning_params).to(device)
         self.tar_qrm_net = QRMNet(num_features, num_actions, num_policies, learning_params).to(device)
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
+
         if learning_params.tabular_case:
             self.optimizer = optim.SGD(self.qrm_net.parameters(), lr=learning_params.lr)
         else:
@@ -143,7 +143,6 @@ class QRMAgent:
         Q = self.qrm_net(s1)[ind, :, a.squeeze(1)]
         gamma = self.learning_params.gamma
 
-        # TODO: check Q_tar is correct or not
         with torch.no_grad():
             Q_tar_all = torch.max(self.tar_qrm_net(s2), dim=2)[0]
             Q_tar = torch.gather(Q_tar_all, dim=1, index=nps)

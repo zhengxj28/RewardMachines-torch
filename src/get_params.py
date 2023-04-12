@@ -76,6 +76,7 @@ def get_params_office_world(experiment, use_rs, use_wandb):
     curriculum = CurriculumLearner(tester.get_task_rms())
     curriculum.num_steps = testing_params.num_steps  # 100
     curriculum.total_steps = 100 * step_unit
+    # curriculum.total_steps = 10 * step_unit  # for test only
     curriculum.min_steps = 1
 
     print("Office World ----------")

@@ -9,61 +9,63 @@ import wandb
 
 
 class Tester:
-    def __init__(self, learning_params, testing_params, experiment, use_rs, use_wandb, result_file=None):
-        if result_file is None:  # in this case, we are running a new experiment
-            self.learning_params = learning_params
-            self.testing_params = testing_params
-            # Reading the file
-            self.experiment = experiment
-            self.use_wandb = use_wandb
-            f = open(experiment)
-            lines = [l.rstrip() for l in f]
-            f.close()
+    def __init__(self, learning_params, testing_params, experiment, use_rs, use_wandb):
+        self.learning_params = learning_params
+        self.testing_params = testing_params
+        # Reading the file
+        self.experiment = experiment
+        self.use_wandb = use_wandb
+        f = open(experiment)
+        lines = [l.rstrip() for l in f]
+        f.close()
 
-            # setting the right world environment
-            self.game_type = eval(lines[0])
-            if self.game_type == "officeworld":
-                self.world = TesterOfficeWorld(experiment, learning_params.gamma)
-            if self.game_type == "craftworld":
-                self.world = TesterCraftWorld(experiment, learning_params.tabular_case, learning_params.gamma)
-            if self.game_type == "waterworld":
-                self.world = TesterWaterWorld(experiment, learning_params.use_random_maps)
+        # setting the right world environment
+        self.game_type = eval(lines[0])
+        if self.game_type == "officeworld":
+            self.world = TesterOfficeWorld(experiment, learning_params.gamma)
+        if self.game_type == "craftworld":
+            self.world = TesterCraftWorld(experiment, learning_params.tabular_case, learning_params.gamma)
+        if self.game_type == "waterworld":
+            self.world = TesterWaterWorld(experiment, learning_params.use_random_maps)
 
-            # Creating the reward machines for each task
-            self.reward_machines = []
-            self.file_to_reward_machine = {}
-            rm_files = self.world.get_reward_machine_files()
-            for i in range(len(rm_files)):
-                rm_file = rm_files[i]
-                self.file_to_reward_machine[rm_file] = i
-                rm_file = os.path.join(os.path.dirname(__file__), "..", rm_file)
-                self.reward_machines.append(RewardMachine(rm_file, use_rs, learning_params.gamma))
+        # Creating the reward machines for each task
+        self.reward_machines = []
+        self.file_to_reward_machine = {}
+        rm_files = self.world.get_reward_machine_files()
+        for i in range(len(rm_files)):
+            rm_file = rm_files[i]
+            self.file_to_reward_machine[rm_file] = i
+            rm_file = os.path.join(os.path.dirname(__file__), "..", rm_file)
+            self.reward_machines.append(RewardMachine(rm_file, use_rs, learning_params.gamma))
 
-            # I store the results here
-            self.results = {}
-            self.steps = []
-            aux_tasks = self.get_task_specifications()
-            for i in range(len(aux_tasks)):
-                t_str = str(aux_tasks[i])
-                self.results[t_str] = {}
+        # I store the results here
+        self.rewards = {}
+        self.steps = []
+        aux_tasks = self.get_task_specifications()
+        for task in aux_tasks:
+            # filename = os.path.split(task)[-1]
+            # t_str = os.path.splitext(filename)[0]
+            self.rewards[task] = {}
 
-        else:
-            # In this case, we load the results that were precomputed in a previous run
-            data = read_json(result_file)
-            self.game_type = data['game_type']
-            if self.game_type == "craftworld":
-                self.world = TesterCraftWorld(None, None, None, data['world'])
-            if self.game_type == "waterworld":
-                self.world = TesterWaterWorld(None, None, data['world'])
-            if self.game_type == "officeworld":
-                self.world = TesterOfficeWorld(None, None, data['world'])
+        self.total_rewards = []
 
-            self.results = data['results']
-            self.steps = data['steps']
-            # obs: json transform the interger keys from 'results' into strings
-            # so I'm changing the 'steps' to strings
-            for i in range(len(self.steps)):
-                self.steps[i] = str(self.steps[i])
+        # else:
+        #     # In this case, we load the results that were precomputed in a previous run
+        #     data = read_json(result_file)
+        #     self.game_type = data['game_type']
+        #     if self.game_type == "craftworld":
+        #         self.world = TesterCraftWorld(None, None, None, data['world'])
+        #     if self.game_type == "waterworld":
+        #         self.world = TesterWaterWorld(None, None, data['world'])
+        #     if self.game_type == "officeworld":
+        #         self.world = TesterOfficeWorld(None, None, data['world'])
+        #
+        #     self.results = data['results']
+        #     self.steps = data['steps']
+        #     # obs: json transform the interger keys from 'results' into strings
+        #     # so I'm changing the 'steps' to strings
+        #     for i in range(len(self.steps)):
+        #         self.steps[i] = str(self.steps[i])
 
     def get_world_name(self):
         return self.game_type.replace("world", "")
@@ -107,23 +109,24 @@ class Tester:
             task_params = self.get_task_params(task_specification)
             task_rm_id = self.get_reward_machine_id(task_specification)
             reward = test_function(reward_machines, task_params, task_rm_id, self.testing_params, *test_args)
-            if step not in self.results[task_str]:
-                self.results[task_str][step] = []
+            if step not in self.rewards[task_str]:
+                self.rewards[task_str][step] = []
             if len(self.steps) == 0 or self.steps[-1] < step:
                 self.steps.append(step)
-            if reward is None:
-                # the test returns 'none' when, for some reason, this network hasn't change
-                # so we have to copy the results from the previous iteration
-                id_step = [i for i in range(len(self.steps)) if self.steps[i] == step][0] - 1
-                reward = 0 if id_step < 0 else self.results[task_str][self.steps[id_step]][-1]
-                # print("Skiped reward is", reward)
-            self.results[task_str][step].append(reward)
+            # if reward is None:
+            #     # the test returns 'none' when, for some reason, this network hasn't change
+            #     # so we have to copy the results from the previous iteration
+            #     id_step = [i for i in range(len(self.steps)) if self.steps[i] == step][0] - 1
+            #     reward = 0 if id_step < 0 else self.results[task_str][self.steps[id_step]][-1]
+            #     # print("Skiped reward is", reward)
+            self.rewards[task_str][step].append(reward)
             rewards_of_each_task.append(reward)
-        # print("Testing: %0.1f" % (time.time() - t_init),
-        #       "seconds\tTotal: %d" % sum([(r if r > 0 else self.testing_params.num_steps) for r in reward2steps(aux)]))
-        # print("\t".join(["%d" % (r) for r in reward2steps(aux)]))
+
+        total_reward = sum(rewards_of_each_task)
+        self.total_rewards.append(total_reward)
+
         print("Steps: %d\tTesting: %0.1f" % (step, time.time() - t_init),
-              "seconds\tTotal Reward: %0.1f" % sum(rewards_of_each_task))
+              "seconds\tTotal Reward: %0.1f" % total_reward)
         print("\t".join(["%0.1f" % (r) for r in rewards_of_each_task]))
 
         log_reward = {"total": sum(rewards_of_each_task)}
@@ -144,7 +147,7 @@ class Tester:
             print("\n" + t_str + " --------------------")
             print("steps\tP25\t\tP50\t\tP75")
             for s in self.steps:
-                normalized_rewards = [r / self.get_optimal(t) for r in self.results[t_str][s]]
+                normalized_rewards = [r / self.get_optimal(t) for r in self.rewards[t_str][s]]
                 a = np.array(normalized_rewards)
                 if s not in average_reward:
                     average_reward[s] = a
@@ -169,7 +172,7 @@ class Tester:
         ret = {}
         for t in self.get_task_specifications():
             t_str = str(t)
-            ret[t_str] = max([max(self.results[t_str][s]) for s in self.steps])
+            ret[t_str] = max([max(self.rewards[t_str][s]) for s in self.steps])
         return ret
 
     def get_result_summary(self):
@@ -190,7 +193,7 @@ class Tester:
                 task_reward_count[task_rm] = 0
             task_reward_count[task_rm] += 1
             for s in self.steps:
-                normalized_rewards = [r / self.get_optimal(t_str) for r in self.results[t_str][s]]
+                normalized_rewards = [r / self.get_optimal(t_str) for r in self.rewards[t_str][s]]
                 a = np.array(normalized_rewards)
                 # adding to the average reward
                 if s not in average_reward:
