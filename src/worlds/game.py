@@ -60,7 +60,7 @@ class Game:
         u1 = self.u
         u2 = self.rm.get_next_state(u1, events)
         self.u = u2
-        r = self.rm.get_reward(u1, u2, s1, a, s2)
+        r = self.rm.get_reward(u1, u2, s1, a, s2, eval_mode=True)
         done = self.rm.is_terminal_state(u2) or self.world.env_game_over
         events = self.get_true_propositions()
         if r == 0: r = -0.01

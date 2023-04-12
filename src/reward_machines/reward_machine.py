@@ -45,7 +45,7 @@ class RewardMachine:
                     return u2
         return self.u_broken  # no transition is defined for true_props
 
-    def get_reward(self, u1, u2, s1, a, s2):
+    def get_reward(self, u1, u2, s1, a, s2, eval_mode=False):
         """
         Returns the reward associated to this transition.
         The extra reward given by RS is included only during training!
@@ -56,7 +56,7 @@ class RewardMachine:
             reward += self.delta_r[u1][u2].get_reward(s1, a, s2)
         # Adding the reward shaping (if needed)
         rs = 0.0
-        if self.use_rs:
+        if self.use_rs and not eval_mode:
             rs = self.gamma * self.potentials[u2] - self.potentials[u1]
         # Returning final reward
         return reward + rs
