@@ -7,7 +7,6 @@ class Saver:
         # folder = "../tmp/"
         folder = os.path.join("..", "data")
 
-        # e.g. tester.experiment = "../experiments/craft/tests/craft_0.txt"
         exp_dir = os.path.join(folder, tester.game_type)
         self.file_out_path = os.path.join(exp_dir, alg_name)
         if not os.path.exists(self.file_out_path):

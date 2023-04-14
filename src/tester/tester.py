@@ -45,27 +45,9 @@ class Tester:
         for task in aux_tasks:
             # filename = os.path.split(task)[-1]
             # t_str = os.path.splitext(filename)[0]
-            self.rewards[task] = {}
+            self.rewards[str(task)] = {}
 
         self.total_rewards = []
-
-        # else:
-        #     # In this case, we load the results that were precomputed in a previous run
-        #     data = read_json(result_file)
-        #     self.game_type = data['game_type']
-        #     if self.game_type == "craftworld":
-        #         self.world = TesterCraftWorld(None, None, None, data['world'])
-        #     if self.game_type == "waterworld":
-        #         self.world = TesterWaterWorld(None, None, data['world'])
-        #     if self.game_type == "officeworld":
-        #         self.world = TesterOfficeWorld(None, None, data['world'])
-        #
-        #     self.results = data['results']
-        #     self.steps = data['steps']
-        #     # obs: json transform the interger keys from 'results' into strings
-        #     # so I'm changing the 'steps' to strings
-        #     for i in range(len(self.steps)):
-        #         self.steps[i] = str(self.steps[i])
 
     def get_world_name(self):
         return self.game_type.replace("world", "")
@@ -113,12 +95,6 @@ class Tester:
                 self.rewards[task_str][step] = []
             if len(self.steps) == 0 or self.steps[-1] < step:
                 self.steps.append(step)
-            # if reward is None:
-            #     # the test returns 'none' when, for some reason, this network hasn't change
-            #     # so we have to copy the results from the previous iteration
-            #     id_step = [i for i in range(len(self.steps)) if self.steps[i] == step][0] - 1
-            #     reward = 0 if id_step < 0 else self.results[task_str][self.steps[id_step]][-1]
-            #     # print("Skiped reward is", reward)
             self.rewards[task_str][step].append(reward)
             rewards_of_each_task.append(reward)
 

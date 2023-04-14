@@ -26,7 +26,6 @@ def run_qrm_experiments(alg_name, tester, curriculum, show_print, use_cuda):
         run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print)
 
 
-
 def run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print):
     """
     This code runs one training episode. 
@@ -77,10 +76,6 @@ def run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print):
             # Updating the target network
             if cur_step % learning_params.target_network_update_freq == 0:
                 qrm_agent.update_target_network()
-
-            # if learning_params.prioritized_replay:
-            #     new_priorities = abs_td_errors + learning_params.prioritized_replay_eps
-            #     replay_buffer.update_priorities(batch_idxes, new_priorities)
 
         # Printing
         training_reward += env_reward
