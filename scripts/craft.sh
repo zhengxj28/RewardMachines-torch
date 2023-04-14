@@ -1,9 +1,6 @@
-cd ../src
-for i in `seq 0 10`; 
+cd src
+for i in `seq 0 9`;
 do
-	python3 run.py --algorithm="dqn" --world="craft" --num_times=3 --map=$i &&
-	python3 run.py --algorithm="hrl" --world="craft" --num_times=3 --map=$i &&
-	python3 run.py --algorithm="hrl-rm" --world="craft" --num_times=3 --map=$i &&
-	python3 run.py --algorithm="qrm" --world="craft" --num_times=3 --map=$i &&
-	python3 run.py --algorithm="qrm-rs" --world="craft" --num_times=3 --map=$i
+	nohup python -u run.py --algorithm="qrm" --world="craft" --seed=$i --use_wandb >../logs/craft/qrm_seed$i.log 2>&1 &&
+	nohup python -u run.py --algorithm="qrm-rs" --world="craft" --seed=$i --use_wandb >../logs/craft/qrmrs_seed$i.log 2>&1
 done
