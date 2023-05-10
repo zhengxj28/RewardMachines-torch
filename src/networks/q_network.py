@@ -26,7 +26,7 @@ class QRMNet(nn.Module):
 
 
 class TabularQNet(nn.Module):
-    def __init__(self, num_input, num_output, num_hidden=128):
+    def __init__(self, num_input, num_output):
         super().__init__()
         self.layer = nn.Linear(num_input, num_output, bias=False)
         nn.init.constant_(self.layer.weight, 1.0)

@@ -2,6 +2,7 @@ class LearningParameters:
     def __init__(self, lr=0.001, max_timesteps_per_task=100000, buffer_size=50000,
                  print_freq=1000, epsilon=0.1, exploration_fraction=0.1, exploration_final_eps=0.02,
                  train_freq=1, batch_size=32,
+                 clip_rate=0.1, lam=0.8, n_updates=10,
                  learning_starts=1000, gamma=0.99, target_network_update_freq=500,
                  tabular_case=False, use_double_dqn=False, use_random_maps=False,
                  prioritized_replay=False, prioritized_replay_alpha=0.6, prioritized_replay_beta0=0.4,
@@ -33,6 +34,12 @@ class LearningParameters:
             discount factor
         target_network_update_freq: int
             update the target network every `target_network_update_freq` steps.
+        clip_rate: float
+            clip rate for PPO algo
+        lam: float
+            coefficient for calculating generalized advantage estimation (gae)
+        n_updates: int
+            update times for each learning loop in PPO
         tabular_case: bool
             if True, we solve the problem without an state approx
             if False, we solve the problem using a neuralnet
@@ -60,16 +67,24 @@ class LearningParameters:
         self.learning_starts = learning_starts
         self.gamma = gamma
         self.target_network_update_freq = target_network_update_freq
+
+        # PPO algo
+        self.clip_rate = clip_rate
+        self.lam = lam  # for calculating gae
+        self.n_updates = n_updates
+
         # attributes for the tabular case
         self.tabular_case = tabular_case
         self.use_double_dqn = use_double_dqn
         self.use_random_maps = use_random_maps
+
         # Prioritized experience replay
         self.prioritized_replay = prioritized_replay
         self.prioritized_replay_alpha = prioritized_replay_alpha
         self.prioritized_replay_beta0 = prioritized_replay_beta0
         self.prioritized_replay_beta_iters = prioritized_replay_beta_iters
         self.prioritized_replay_eps = prioritized_replay_eps
+
         # Network architecture
         self.num_hidden_layers = num_hidden_layers
         self.num_neurons = num_neurons

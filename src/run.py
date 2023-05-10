@@ -6,6 +6,7 @@ file_path = os.path.dirname(os.path.abspath(__file__))  # location of current fi
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
 
 from src.algos.qrm import run_qrm_experiments
+from src.algos.pporm import run_pporm_experiments
 from get_params import *
 from src.tester.saver import Saver
 
@@ -32,14 +33,18 @@ def run_experiment(args, tester, curriculum):
 
     # QRM
     if alg_name in ["qrm", "qrm-rs"]:
-        run_qrm_experiments(alg_name, tester, curriculum, show_print, use_cuda)
+        run_qrm_experiments(tester, curriculum, show_print, use_cuda)
+
+    # PPORM
+    if alg_name in ["pporm", "pporm-rs"]:
+        run_pporm_experiments(tester, curriculum, show_print, use_cuda)
 
 
 if __name__ == "__main__":
     # EXAMPLE: python run.py --algorithm "qrm" --world "office" --seeds 0 1 2 3 4 --use_wandb
 
     # Getting params
-    algorithms = ["qrm", "qrm-rs"]
+    algorithms = ["qrm", "qrm-rs", "pporm", "pporm-rs"]
     worlds = ["office", "craft", "water"]
 
     parser = argparse.ArgumentParser(prog="run_experiments",
@@ -50,8 +55,6 @@ if __name__ == "__main__":
                         help='This parameter indicated which world to solve. The options are: ' + str(worlds))
     parser.add_argument('--map', default=0, type=int,
                         help='This parameter indicated which map to use. It must be a number between 0 and 10.')
-    # parser.add_argument('--num_times', default=1, type=int,
-    #                     help='This parameter indicated which map to use. It must be a number greater or equal to 1')
     parser.add_argument('--seeds', nargs='+', type=int, default=[0],
                         help='A list of random seeds to run experiments.')
     parser.add_argument('--use_wandb', action='store_true',
@@ -82,11 +85,11 @@ if __name__ == "__main__":
         print("*"*10, "seed:", s, "*"*10)
 
         if world == 'officeworld':
-            tester, curriculum = get_params_office_world(experiment, use_rs, use_wandb)
+            tester, curriculum = get_params_office_world(alg_name, experiment, use_rs, use_wandb)
         if world == 'craftworld':
-            tester, curriculum = get_params_craft_world(experiment, use_rs, use_wandb)
+            tester, curriculum = get_params_craft_world(alg_name, experiment, use_rs, use_wandb)
         if world == 'waterworld':
-            tester, curriculum = get_params_water_world(experiment, use_rs, use_wandb)
+            tester, curriculum = get_params_water_world(alg_name, experiment, use_rs, use_wandb)
 
         learning_params = tester.learning_params
         saver = Saver(alg_name, tester, curriculum)

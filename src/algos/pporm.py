@@ -2,11 +2,10 @@ import random
 import time
 import wandb
 
-from src.agents.qrm_agent import QRMAgent
-from src.worlds.game import Game
+from src.agents.pporm_agent import PPORMAgent
+from src.worlds.game import *
 
-
-def run_qrm_experiments(tester, curriculum, show_print, use_cuda):
+def run_pporm_experiments(tester, curriculum, show_print, use_cuda):
     learning_params = tester.learning_params
 
     # Resetting default values
@@ -16,19 +15,19 @@ def run_qrm_experiments(tester, curriculum, show_print, use_cuda):
     num_features = task_aux.num_features
     num_actions = task_aux.num_actions
 
-    qrm_agent = QRMAgent(num_features, num_actions, learning_params, tester.get_reward_machines(), curriculum, use_cuda)
+    pporm_agent = PPORMAgent(num_features, num_actions, learning_params, tester.get_reward_machines(), curriculum, use_cuda)
 
     # Task loop
     while not curriculum.stop_learning():
         if show_print: print("Current step:", curriculum.get_current_step(), "from", curriculum.total_steps)
         rm_file = curriculum.get_next_task()
         # Running 'task_rm_id' for one episode
-        run_qrm_task(rm_file, qrm_agent, tester, curriculum, show_print)
+        run_pporm_task(rm_file, pporm_agent, tester, curriculum, show_print)
 
 
-def run_qrm_task(rm_file, agent, tester, curriculum, show_print):
+def run_pporm_task(rm_file, agent, tester, curriculum, show_print):
     """
-    This code runs one training episode. 
+    This code runs one training episode.
         - rm_file: It is the path towards the RM machine to solve on this episode
     """
     # Initializing parameters and the game
@@ -49,20 +48,19 @@ def run_qrm_task(rm_file, agent, tester, curriculum, show_print):
     if show_print: print("Executing Task", task_rm_id)
     for t in range(num_steps):
         curriculum.add_step()
-        a = agent.get_action(s1)
+        a, log_prob = agent.get_action(s1)
         # do not use reward from env to learn
         s2, env_reward, done, events = env.step(a)
 
-        agent.update(s1, a, s2, events, done)
+        agent.update(s1, a, s2, events, log_prob, done)
 
         # Learning
         cur_step = curriculum.get_current_step()
         if cur_step > learning_params.learning_starts:
-            if cur_step % learning_params.train_freq == 0:
-                agent.learn()
-            # Updating the target network
-            if cur_step % learning_params.target_network_update_freq == 0:
-                agent.update_target_network()
+            # if cur_step % learning_params.train_freq == 0:
+            if agent.buffer.is_full() or done:
+                policy_loss, value_loss = agent.learn()
+                agent.buffer.clear()  # Once learned, clear the data
 
         # Printing
         training_reward += env_reward
@@ -71,7 +69,7 @@ def run_qrm_task(rm_file, agent, tester, curriculum, show_print):
 
         # Testing
         if testing_params.test and cur_step % testing_params.test_freq == 0:
-            tester.run_test(cur_step, run_qrm_test, agent)
+            tester.run_test(cur_step, run_pporm_test, agent)
 
         # Restarting the environment (Game Over)
         if done:
@@ -90,7 +88,7 @@ def run_qrm_task(rm_file, agent, tester, curriculum, show_print):
     if show_print: print("Done! Total reward:", training_reward)
 
 
-def run_qrm_test(reward_machines, task_params, task_rm_id, testing_params, rm_agent):
+def run_pporm_test(reward_machines, task_params, task_rm_id, testing_params, rm_agent):
     """
     run a test (single task) for algorithms that use reward machines.
     """
@@ -103,7 +101,7 @@ def run_qrm_test(reward_machines, task_params, task_rm_id, testing_params, rm_ag
     # Starting interaction with the environment
     r_total = 0
     for t in range(testing_params.num_steps):
-        a = rm_agent.get_action(s1, eval_mode=True)
+        a, _ = rm_agent.get_action(s1, eval_mode=True)
         s2, env_reward, done, events = env.step(a)
         rm_agent.update_rm_state(events, eval_mode=True)
         r_total += env_reward

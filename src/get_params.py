@@ -4,9 +4,8 @@ from common.curriculum import CurriculumLearner
 from tester.learning_params import LearningParameters
 
 
-def get_params_craft_world(experiment, use_rs, use_wandb):
+def get_params_craft_world(alg_name, experiment, use_rs, use_wandb):
     step_unit = 1000
-
     # configuration of testing params
     testing_params = TestingParameters(
         test=True,
@@ -14,18 +13,31 @@ def get_params_craft_world(experiment, use_rs, use_wandb):
         num_steps=1000
     )
 
-    # configuration of learning params
-    learning_params = LearningParameters(
-        gamma=0.9,
-        print_freq=step_unit,
-        train_freq=1,
-        tabular_case=True,
-        max_timesteps_per_task=testing_params.num_steps,
-        lr=1,
-        batch_size=1,
-        buffer_size=1,
-        learning_starts=1,
-    )
+    if alg_name in ["qrm", "qrm-rs"]:
+        # configuration of learning params
+        learning_params = LearningParameters(
+            gamma=0.9,
+            print_freq=step_unit,
+            train_freq=1,
+            tabular_case=True,
+            max_timesteps_per_task=testing_params.num_steps,
+            lr=1,
+            batch_size=1,
+            buffer_size=1,
+            learning_starts=1,
+        )
+    if alg_name in ["pporm", "pporm-rs"]:
+        # configuration of learning params
+        learning_params = LearningParameters(
+            gamma=0.9, tabular_case=True,
+            max_timesteps_per_task=testing_params.num_steps,
+            lr=1e-1,
+            clip_rate=0.1,
+            lam=0.8,
+            n_updates=10,
+            learning_starts=1,
+            buffer_size=testing_params.num_steps,
+        )
 
     # Setting the experiment
     tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
@@ -47,9 +59,8 @@ def get_params_craft_world(experiment, use_rs, use_wandb):
     return tester, curriculum
 
 
-def get_params_office_world(experiment, use_rs, use_wandb):
+def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
     step_unit = 500
-
     # configuration of testing params
     testing_params = TestingParameters(
         test=True,
@@ -57,17 +68,32 @@ def get_params_office_world(experiment, use_rs, use_wandb):
         num_steps=1000
     )
 
-    # configuration of learning params
-    learning_params = LearningParameters(
-        gamma=0.9, tabular_case=True,
-        max_timesteps_per_task=testing_params.num_steps,
-        epsilon=0.1,
-        lr=1.0,
-        batch_size=1,
-        learning_starts=1,
-        buffer_size=1,
-        target_network_update_freq=1
-    )
+    if alg_name in ["qrm", "qrm-rs"]:
+        # configuration of learning params
+        learning_params = LearningParameters(
+            gamma=0.9, tabular_case=True,
+            max_timesteps_per_task=testing_params.num_steps,
+            epsilon=0.1,
+            lr=1.0,
+            batch_size=1,
+            learning_starts=1,
+            buffer_size=1,
+            target_network_update_freq=1
+        )
+
+    if alg_name in ["pporm", "pporm-rs"]:
+        # configuration of learning params
+        learning_params = LearningParameters(
+            gamma=0.9, tabular_case=True,
+            max_timesteps_per_task=testing_params.num_steps,
+            lr=1e-1,
+            clip_rate=0.1,
+            lam=0.8,
+            n_updates=10,
+            learning_starts=1,
+            buffer_size=testing_params.num_steps,
+        )
+
 
     # Setting the experiment
     tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
@@ -89,34 +115,49 @@ def get_params_office_world(experiment, use_rs, use_wandb):
     return tester, curriculum
 
 
-def get_params_water_world(experiment, use_rs, use_wandb):
+def get_params_water_world(alg_name, experiment, use_rs, use_wandb):
     step_unit = 1000
-
-    # configuration of testing params
     testing_params = TestingParameters(
         test=True,
         test_freq=10 * step_unit,
         num_steps=600
     )
 
-    # configuration of learning params
-    learning_params = LearningParameters(
-        lr=1e-5,  # 5e-5 seems to be better than 1e-4
-        gamma=0.9,
-        max_timesteps_per_task=testing_params.num_steps,
-        buffer_size=50000,
-        print_freq=step_unit,
-        train_freq=1,
-        batch_size=32,
-        target_network_update_freq=100,  # obs: 500 makes learning more stable, but slower
-        learning_starts=1000,
-        tabular_case=False,
-        use_random_maps=False,
-        use_double_dqn=True,
-        prioritized_replay=True,
-        num_hidden_layers=6,
-        num_neurons=64
-    )
+    if alg_name in ["qrm", "qrm-rs"]:
+        learning_params = LearningParameters(
+            lr=1e-5,  # 5e-5 seems to be better than 1e-4
+            gamma=0.9,
+            max_timesteps_per_task=testing_params.num_steps,
+            buffer_size=50000,
+            print_freq=step_unit,
+            train_freq=1,
+            batch_size=32,
+            target_network_update_freq=100,  # obs: 500 makes learning more stable, but slower
+            learning_starts=1000,
+            tabular_case=False,
+            use_random_maps=False,
+            use_double_dqn=True,
+            prioritized_replay=True,
+            num_hidden_layers=6,
+            num_neurons=64
+        )
+    if alg_name in ["pporm", "pporm-rs"]:
+        learning_params = LearningParameters(
+            lr=1e-5,  # 5e-5 seems to be better than 1e-4
+            gamma=0.9,
+            max_timesteps_per_task=testing_params.num_steps,
+            buffer_size=testing_params.num_steps,
+            print_freq=step_unit,
+            # target_network_update_freq=100,  # obs: 500 makes learning more stable, but slower
+            clip_rate=0.1,
+            lam=0.8,
+            n_updates=10,
+            learning_starts=1,
+            tabular_case=False,
+            use_random_maps=False,
+            num_hidden_layers=6,
+            num_neurons=64
+        )
 
     # Setting the experiment
     tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
