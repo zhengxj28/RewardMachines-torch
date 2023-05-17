@@ -3,6 +3,7 @@ class LearningParameters:
                  print_freq=1000, epsilon=0.1, exploration_fraction=0.1, exploration_final_eps=0.02,
                  train_freq=1, batch_size=32,
                  clip_rate=0.1, lam=0.8, n_updates=10,
+                 policy_loss_coef=1.0, value_loss_coef=1.0, entropy_loss_coef=1.0,
                  learning_starts=1000, gamma=0.99, target_network_update_freq=500,
                  tabular_case=False, use_double_dqn=False, use_random_maps=False,
                  prioritized_replay=False, prioritized_replay_alpha=0.6, prioritized_replay_beta0=0.4,
@@ -72,6 +73,9 @@ class LearningParameters:
         self.clip_rate = clip_rate
         self.lam = lam  # for calculating gae
         self.n_updates = n_updates
+        self.policy_loss_coef = policy_loss_coef
+        self.value_loss_coef = value_loss_coef
+        self.entropy_loss_coef = entropy_loss_coef
 
         # attributes for the tabular case
         self.tabular_case = tabular_case

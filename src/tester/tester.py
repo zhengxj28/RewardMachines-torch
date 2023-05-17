@@ -15,6 +15,7 @@ class Tester:
         # Reading the file
         self.experiment = experiment
         self.use_wandb = use_wandb
+        self.loss_info = {}  # loss information
         f = open(experiment)
         lines = [l.rstrip() for l in f]
         f.close()
@@ -110,7 +111,15 @@ class Tester:
             log_reward["task%d"%i] = rewards_of_each_task[i]
         log_dict = {"reward": log_reward}
 
-        if self.use_wandb:  wandb.log(log_dict)
+        for key, value in self.loss_info.items():
+            print("%s: %.4f"%(key, value), end='\t')
+        print()
+
+        if self.use_wandb:
+            wandb.log({"reward": log_reward, "loss": self.loss_info})
+
+    def save_loss_info(self, loss_info):
+        self.loss_info = loss_info
 
     def show_results(self):
         average_reward = {}

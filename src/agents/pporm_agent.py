@@ -47,6 +47,9 @@ class PPORMAgent(RMAgent):
         gamma = self.learning_params.gamma
         lam = self.learning_params.lam
         clip_rate = self.learning_params.clip_rate
+        p_coef = self.learning_params.policy_loss_coef
+        v_coef = self.learning_params.value_loss_coef
+        e_coef = self.learning_params.entropy_loss_coef
 
         for _ in range(self.learning_params.n_updates):
             v1 = self.critic_rm_net(s1).squeeze(2)
@@ -65,27 +68,37 @@ class PPORMAgent(RMAgent):
                     gaes[t, :] = deltas[t, :] + gamma * lam * gaes[t+1, :]
 
             policy_loss = torch.Tensor([0.0]).to(self.device)
-            prob_all = self.actor_rm_net(s1)
+            total_entropy = torch.Tensor([0.0]).to(self.device)
+            prob_all = self.actor_rm_net(s1)  # shape: (batch, policy_id, action)
             for u in range(self.num_policies):
-                prob = torch.gather(prob_all[:, u], dim=1, index=a).squeeze(1)
-                log_prob = torch.log(prob)
+                prob = prob_all[:, u]
+                dist = Categorical(prob)
+                log_prob = dist.log_prob(a.squeeze(1))
+                ent = dist.entropy()
+
+                # prob = torch.gather(prob_all[:, u], dim=1, index=a).squeeze(1)
+                # log_prob = torch.log(prob)
+
                 ratio = torch.exp(log_prob-old_log_prob[:, u])
                 surr1 = ratio * gaes[:, u]
                 surr2 = torch.clamp(ratio, 1-clip_rate, 1+clip_rate)*gaes[:, u]
                 policy_loss += -torch.mean(torch.min(surr1, surr2))
+                total_entropy += torch.mean(ent)
 
             value_loss = torch.Tensor([0.0]).to(self.device)
             for u in range(self.num_policies):
                 value_loss += nn.MSELoss()(v1[:, u], v_tar[:, u])
 
-            loss = policy_loss + value_loss
+            loss = p_coef * policy_loss + v_coef * value_loss - e_coef * total_entropy
 
             self.actor_optim.zero_grad()
             self.critic_optim.zero_grad()
             loss.backward()
             self.actor_optim.step()
             self.critic_optim.step()
-            return policy_loss.item(), value_loss.item()
+            return {"policy_loss": policy_loss.cpu().item()/self.num_policies,
+                    "value_loss": value_loss.cpu().item()/self.num_policies,
+                    "entropy": total_entropy.cpu().item()/self.num_policies}
 
     def get_action(self, s, eval_mode=False):
         device = self.device
@@ -95,8 +108,11 @@ class PPORMAgent(RMAgent):
         prob = prob_all[:, policy_id].squeeze(0)
         dist = Categorical(prob)
         a = dist.sample()
-        log_prob = torch.log(prob_all.squeeze(0)[:, a])
-        return a.cpu().item(), log_prob
+        if eval_mode:
+            return a.cpu().item()
+        else:
+            log_prob = torch.log(prob_all.squeeze(0)[:, a])
+            return a.cpu().item(), log_prob
 
     def update(self, s1, a, s2, events, log_prob, done):
         # Getting rewards and next states for each reward machine to learn
@@ -118,10 +134,6 @@ class PPORMAgent(RMAgent):
 
 class ReplayBuffer(object):
     def __init__(self, num_features, num_actions, num_policies, learning_params, device):
-        """
-        Create (Prioritized) Replay buffer.
-        """
-
         maxsize = learning_params.buffer_size
         self.maxsize = maxsize
         self.device = device

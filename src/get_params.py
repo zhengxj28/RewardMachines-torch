@@ -74,7 +74,7 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
             gamma=0.9, tabular_case=True,
             max_timesteps_per_task=testing_params.num_steps,
             epsilon=0.1,
-            lr=1.0,
+            lr=0.1,
             batch_size=1,
             learning_starts=1,
             buffer_size=1,
@@ -86,12 +86,13 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
         learning_params = LearningParameters(
             gamma=0.9, tabular_case=True,
             max_timesteps_per_task=testing_params.num_steps,
-            lr=1e-1,
+            lr=1e-2,
             clip_rate=0.1,
             lam=0.8,
-            n_updates=10,
+            entropy_loss_coef=0.0,
+            n_updates=4,
             learning_starts=1,
-            buffer_size=testing_params.num_steps,
+            buffer_size=1,
         )
 
 
@@ -101,14 +102,11 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
     # Setting the curriculum learner
     curriculum = CurriculumLearner(tester.get_task_rms())
     curriculum.num_steps = testing_params.num_steps  # 100
-    curriculum.total_steps = 100 * step_unit
+    curriculum.total_steps = 200 * step_unit
     # curriculum.total_steps = 10 * step_unit  # for test only
     curriculum.min_steps = 1
 
     print("Office World ----------")
-    print("TRAIN gamma:", learning_params.gamma)
-    print("epsilon: ", learning_params.epsilon)
-    print("tabular_case:", learning_params.tabular_case)
     print("num_steps:", testing_params.num_steps)
     print("total_steps:", curriculum.total_steps)
 
@@ -147,11 +145,14 @@ def get_params_water_world(alg_name, experiment, use_rs, use_wandb):
             gamma=0.9,
             max_timesteps_per_task=testing_params.num_steps,
             buffer_size=testing_params.num_steps,
+            batch_size=testing_params.num_steps,
             print_freq=step_unit,
-            # target_network_update_freq=100,  # obs: 500 makes learning more stable, but slower
             clip_rate=0.1,
             lam=0.8,
             n_updates=10,
+            policy_loss_coef=1.0,
+            value_loss_coef=1.0,
+            entropy_loss_coef=0.01,
             learning_starts=1,
             tabular_case=False,
             use_random_maps=False,
@@ -169,15 +170,15 @@ def get_params_water_world(alg_name, experiment, use_rs, use_wandb):
     curriculum.min_steps = 1
 
     print("Water World ----------")
-    print("lr:", learning_params.lr)
-    print("batch_size:", learning_params.batch_size)
-    print("num_hidden_layers:", learning_params.num_hidden_layers)
-    print("target_network_update_freq:", learning_params.target_network_update_freq)
-    print("TRAIN gamma:", learning_params.gamma)
-    print("Total steps:", curriculum.total_steps)
-    print("tabular_case:", learning_params.tabular_case)
-    print("use_double_dqn:", learning_params.use_double_dqn)
-    print("prioritized_replay:", learning_params.prioritized_replay)
-    print("use_random_maps:", learning_params.use_random_maps)
+    # print("lr:", learning_params.lr)
+    # print("batch_size:", learning_params.batch_size)
+    # print("num_hidden_layers:", learning_params.num_hidden_layers)
+    # print("target_network_update_freq:", learning_params.target_network_update_freq)
+    # print("TRAIN gamma:", learning_params.gamma)
+    # print("Total steps:", curriculum.total_steps)
+    # print("tabular_case:", learning_params.tabular_case)
+    # print("use_double_dqn:", learning_params.use_double_dqn)
+    # print("prioritized_replay:", learning_params.prioritized_replay)
+    # print("use_random_maps:", learning_params.use_random_maps)
 
     return tester, curriculum

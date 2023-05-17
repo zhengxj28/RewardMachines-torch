@@ -57,9 +57,10 @@ def run_qrm_task(rm_file, agent, tester, curriculum, show_print):
 
         # Learning
         cur_step = curriculum.get_current_step()
-        if cur_step > learning_params.learning_starts:
+        if cur_step >= learning_params.learning_starts:
             if cur_step % learning_params.train_freq == 0:
-                agent.learn()
+                loss_info = agent.learn()
+                tester.save_loss_info(loss_info)
             # Updating the target network
             if cur_step % learning_params.target_network_update_freq == 0:
                 agent.update_target_network()

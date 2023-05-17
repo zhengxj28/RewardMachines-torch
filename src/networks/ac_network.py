@@ -50,7 +50,7 @@ class TabularActorNet(nn.Module):
     def __init__(self, num_input, num_output):
         super().__init__()
         self.layer = nn.Linear(num_input, num_output, bias=False)
-        nn.init.constant_(self.layer.weight, 1.0)
+        nn.init.normal_(self.layer.weight, mean=0, std=1.0)
 
     def forward(self, x):
         return F.softmax(self.layer(x), dim=-1)

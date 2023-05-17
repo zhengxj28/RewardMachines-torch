@@ -56,16 +56,14 @@ def run_pporm_task(rm_file, agent, tester, curriculum, show_print):
 
         # Learning
         cur_step = curriculum.get_current_step()
-        if cur_step > learning_params.learning_starts:
-            # if cur_step % learning_params.train_freq == 0:
+        if cur_step >= learning_params.learning_starts:
             if agent.buffer.is_full() or done:
-                policy_loss, value_loss = agent.learn()
+                loss_info = agent.learn()
                 agent.buffer.clear()  # Once learned, clear the data
+                tester.save_loss_info(loss_info)
 
         # Printing
         training_reward += env_reward
-        if show_print and (t + 1) % learning_params.print_freq == 0:
-            print("Step:", t + 1, "\tTotal reward:", training_reward)
 
         # Testing
         if testing_params.test and cur_step % testing_params.test_freq == 0:
@@ -101,7 +99,7 @@ def run_pporm_test(reward_machines, task_params, task_rm_id, testing_params, rm_
     # Starting interaction with the environment
     r_total = 0
     for t in range(testing_params.num_steps):
-        a, _ = rm_agent.get_action(s1, eval_mode=True)
+        a = rm_agent.get_action(s1, eval_mode=True)
         s2, env_reward, done, events = env.step(a)
         rm_agent.update_rm_state(events, eval_mode=True)
         r_total += env_reward

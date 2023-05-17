@@ -16,7 +16,7 @@ from src.worlds.water_world import Ball, BallAgent
 
 def run_experiment(args, tester, curriculum):
     alg_name = args.algorithm
-    show_print = args.verbosity is not None
+    show_print = False
     use_cuda = args.use_cuda
 
     # # Baseline 1 (standard DQN with Michael Littman's approach)
@@ -40,6 +40,26 @@ def run_experiment(args, tester, curriculum):
         run_pporm_experiments(tester, curriculum, show_print, use_cuda)
 
 
+def get_config(alg_name):
+    if alg_name in ["qrm", "qrm-rs"]:
+        config = {"seed": s,
+                  "lr": learning_params.lr,
+                  "batch_size": learning_params.batch_size,
+                  "target_network_update_freq": learning_params.target_network_update_freq
+                  }
+    if alg_name in ["pporm", "pporm-rs"]:
+        config = {"seed": s,
+                  "lr": learning_params.lr,
+                  "buffer_size": learning_params.buffer_size,
+                  "batch_size": learning_params.batch_size,
+                  "n_updates": learning_params.n_updates,
+                  "policy_loss_coef": learning_params.policy_loss_coef,
+                  "value_loss_coef" : learning_params.value_loss_coef,
+                  "entropy_loss_coef": learning_params.entropy_loss_coef,
+                  }
+    return config
+
+
 if __name__ == "__main__":
     # EXAMPLE: python run.py --algorithm "qrm" --world "office" --seeds 0 1 2 3 4 --use_wandb
 
@@ -61,7 +81,6 @@ if __name__ == "__main__":
                         help='Whether to use wandb or not.')
     parser.add_argument('--use_cuda', action='store_true',
                         help='Whether to use cuda or not.')
-    parser.add_argument("--verbosity", help="increase output verbosity")
 
     args = parser.parse_args()
     if args.algorithm not in algorithms: raise NotImplementedError(
@@ -74,7 +93,7 @@ if __name__ == "__main__":
     map_id = args.map
     use_wandb = args.use_wandb
 
-    filename = "office.txt" if world=="office" else "%s_%d.txt" % (world, map_id)
+    filename = "office.txt" if world == "office" else "%s_%d.txt" % (world, map_id)
     project_path = os.path.dirname(__file__)
     experiment = os.path.join(project_path, "..", "experiments", world, "tests", filename)
     world += "world"
@@ -82,7 +101,7 @@ if __name__ == "__main__":
     use_rs = alg_name.endswith("-rs")
 
     for s in args.seeds:
-        print("*"*10, "seed:", s, "*"*10)
+        print("*" * 10, "seed:", s, "*" * 10)
 
         if world == 'officeworld':
             tester, curriculum = get_params_office_world(alg_name, experiment, use_rs, use_wandb)
@@ -93,23 +112,20 @@ if __name__ == "__main__":
 
         learning_params = tester.learning_params
         saver = Saver(alg_name, tester, curriculum)
+        config = get_config(alg_name)
+        print("alg_name:", alg_name)
+        for key, value in config.items():
+            print("%s:"%key, value)
         if use_wandb:
             wandb.init(
                 project="RewardMachines-torch",
                 group=world,
                 name=alg_name,
-                config={
-                    "seed": s,
-                    "epsilon": learning_params.epsilon,
-                    "gamma": learning_params.gamma,
-                    "lr": learning_params.lr,
-                    "batch_size": learning_params.batch_size,
-                    "target_network_update_freq": learning_params.target_network_update_freq
-                }
+                config=config
             )
         time_init = time.time()
         random.seed(s)
         run_experiment(args, tester, curriculum)
         print("Time:", "%0.2f" % ((time.time() - time_init) / 60), "mins")
-        saver.save_results(filename="seed%d.npy"%s)
+        saver.save_results(filename="seed%d.npy" % s)
         if use_wandb: wandb.finish()
