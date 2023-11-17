@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Categorical
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import time, random
 import numpy as np
 from src.networks.ac_network import ActorRMNet, CriticRMNet
@@ -34,7 +35,7 @@ class PPORMAgent(RMAgent):
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
 
         if learning_params.tabular_case:
-            self.actor_optim = optim.SGD(self.actor_rm_net.parameters(), lr=learning_params.lr)
+            self.actor_optim = optim.Adam(self.actor_rm_net.parameters(), lr=learning_params.lr)
             self.critic_optim = optim.SGD(self.critic_rm_net.parameters(), lr=learning_params.lr)
         else:
             self.actor_optim = optim.Adam(self.actor_rm_net.parameters(), lr=learning_params.lr)
@@ -51,54 +52,63 @@ class PPORMAgent(RMAgent):
         v_coef = self.learning_params.value_loss_coef
         e_coef = self.learning_params.entropy_loss_coef
 
+        ep_len = self.buffer.index
+        with torch.no_grad():
+            v1_nograd = self.critic_rm_net(s1).squeeze(2)
+            v2_all = self.critic_rm_net(s2).squeeze(2)
+            v2 = torch.gather(v2_all, dim=1, index=nps)
+            v_tar = rs + gamma * v2 * (1 - done)
+
+            # calculate gaes for each policy u
+            deltas = v_tar - v1_nograd
+            gaes = torch.zeros_like(deltas)
+            gaes[-1, :] = deltas[-1, :]
+
+            for t in range(ep_len - 2, -1, -1):
+                next_gaes = torch.gather(gaes[t + 1, :], dim=0, index=nps[t])
+                gaes[t, :] = deltas[t, :] + gamma * lam * next_gaes
+
+        loss_dict = {"policy_loss": 0, "value_loss": 0, "entropy": 0}
         for _ in range(self.learning_params.n_updates):
-            v1 = self.critic_rm_net(s1).squeeze(2)
+            # Random sampling and no repetition.
+            # 'False' indicates that training will continue even if the number of samples in the last time is less than mini_batch_size
+            for idx in BatchSampler(
+                    SubsetRandomSampler(range(ep_len)),
+                    self.learning_params.batch_size,
+                    False):
+                policy_loss = torch.Tensor([0.0]).to(self.device)
+                total_entropy = torch.Tensor([0.0]).to(self.device)
+                prob_all = self.actor_rm_net(s1[idx])  # shape: (batch, policy_id, action)
+                for u in range(self.num_policies):
+                    prob = prob_all[:, u]
+                    dist = Categorical(prob)
+                    new_log_prob = dist.log_prob(a[idx].squeeze(1))
+                    ent = dist.entropy()
 
-            with torch.no_grad():
-                v2_all = self.critic_rm_net(s2).squeeze(2)
-                v2 = torch.gather(v2_all, dim=1, index=nps)
-                v_tar = rs + gamma * v2 * (1 - done)
+                    ratio = torch.exp(new_log_prob - old_log_prob[idx, u])
+                    surr1 = ratio * gaes[idx, u]
+                    surr2 = torch.clamp(ratio, 1 - clip_rate, 1 + clip_rate) * gaes[idx, u]
+                    policy_loss += -torch.mean(torch.min(surr1, surr2))
+                    total_entropy += torch.mean(ent)
 
-                # calculate gaes for each policy u
-                deltas = v_tar - v1
-                gaes = torch.zeros_like(deltas)
-                gaes[-1, :] = deltas[-1, :]
-                ep_len = self.buffer.index
-                for t in range(ep_len - 2, -1, -1):
-                    gaes[t, :] = deltas[t, :] + gamma * lam * gaes[t+1, :]
+                v1 = self.critic_rm_net(s1[idx]).squeeze(2)
+                value_loss = torch.Tensor([0.0]).to(self.device)
+                for u in range(self.num_policies):
+                    value_loss += 0.5*nn.MSELoss()(v1[:, u], v_tar[idx, u])
 
-            policy_loss = torch.Tensor([0.0]).to(self.device)
-            total_entropy = torch.Tensor([0.0]).to(self.device)
-            prob_all = self.actor_rm_net(s1)  # shape: (batch, policy_id, action)
-            for u in range(self.num_policies):
-                prob = prob_all[:, u]
-                dist = Categorical(prob)
-                log_prob = dist.log_prob(a.squeeze(1))
-                ent = dist.entropy()
+                loss = p_coef * policy_loss + v_coef * value_loss - e_coef * total_entropy
+                self.actor_optim.zero_grad()
+                self.critic_optim.zero_grad()
+                loss.backward()
+                self.actor_optim.step()
+                self.critic_optim.step()
 
-                # prob = torch.gather(prob_all[:, u], dim=1, index=a).squeeze(1)
-                # log_prob = torch.log(prob)
+                # record most recent loss
+                loss_dict["policy_loss"] = policy_loss.cpu().item()/self.num_policies
+                loss_dict["value_loss"] = value_loss.cpu().item()/self.num_policies
+                loss_dict["entropy"] = total_entropy.cpu().item()/self.num_policies
 
-                ratio = torch.exp(log_prob-old_log_prob[:, u])
-                surr1 = ratio * gaes[:, u]
-                surr2 = torch.clamp(ratio, 1-clip_rate, 1+clip_rate)*gaes[:, u]
-                policy_loss += -torch.mean(torch.min(surr1, surr2))
-                total_entropy += torch.mean(ent)
-
-            value_loss = torch.Tensor([0.0]).to(self.device)
-            for u in range(self.num_policies):
-                value_loss += nn.MSELoss()(v1[:, u], v_tar[:, u])
-
-            loss = p_coef * policy_loss + v_coef * value_loss - e_coef * total_entropy
-
-            self.actor_optim.zero_grad()
-            self.critic_optim.zero_grad()
-            loss.backward()
-            self.actor_optim.step()
-            self.critic_optim.step()
-            return {"policy_loss": policy_loss.cpu().item()/self.num_policies,
-                    "value_loss": value_loss.cpu().item()/self.num_policies,
-                    "entropy": total_entropy.cpu().item()/self.num_policies}
+        return loss_dict
 
     def get_action(self, s, eval_mode=False):
         device = self.device

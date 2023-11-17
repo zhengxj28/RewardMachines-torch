@@ -16,6 +16,7 @@ class Tester:
         self.experiment = experiment
         self.use_wandb = use_wandb
         self.loss_info = {}  # loss information
+        self.last_test_time = time.time()  # last testing time
         f = open(experiment)
         lines = [l.rstrip() for l in f]
         f.close()
@@ -102,21 +103,25 @@ class Tester:
         total_reward = sum(rewards_of_each_task)
         self.total_rewards.append(total_reward)
 
-        print("Steps: %d\tTesting: %0.1f" % (step, time.time() - t_init),
+        cur_time = time.time()
+        training_time = (cur_time-self.last_test_time)/60
+        print("Training time: %0.2f minutes."%(training_time))
+        self.last_test_time = cur_time
+
+        print("Steps: %d\tTesting: %0.1f" % (step, cur_time - t_init),
               "seconds\tTotal Reward: %0.1f" % total_reward)
         print("\t".join(["%0.1f" % (r) for r in rewards_of_each_task]))
 
         log_reward = {"total": sum(rewards_of_each_task)}
         for i in range(len(rewards_of_each_task)):
             log_reward["task%d"%i] = rewards_of_each_task[i]
-        log_dict = {"reward": log_reward}
 
         for key, value in self.loss_info.items():
             print("%s: %.4f"%(key, value), end='\t')
-        print()
+        print('\n')
 
         if self.use_wandb:
-            wandb.log({"reward": log_reward, "loss": self.loss_info})
+            wandb.log({"reward": log_reward, "loss": self.loss_info, "training_time": training_time})
 
     def save_loss_info(self, loss_info):
         self.loss_info = loss_info

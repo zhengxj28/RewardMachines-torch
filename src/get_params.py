@@ -37,6 +37,7 @@ def get_params_craft_world(alg_name, experiment, use_rs, use_wandb):
             n_updates=10,
             learning_starts=1,
             buffer_size=testing_params.num_steps,
+            batch_size=8
         )
 
     # Setting the experiment
@@ -74,7 +75,7 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
             gamma=0.9, tabular_case=True,
             max_timesteps_per_task=testing_params.num_steps,
             epsilon=0.1,
-            lr=0.1,
+            lr=1,
             batch_size=1,
             learning_starts=1,
             buffer_size=1,
@@ -86,13 +87,16 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
         learning_params = LearningParameters(
             gamma=0.9, tabular_case=True,
             max_timesteps_per_task=testing_params.num_steps,
-            lr=1e-2,
+            lr=1,
             clip_rate=0.1,
             lam=0.8,
-            entropy_loss_coef=0.0,
+            policy_loss_coef=1e-4,
+            value_loss_coef=1,
+            entropy_loss_coef=1,
             n_updates=4,
             learning_starts=1,
-            buffer_size=1,
+            buffer_size=100,
+            batch_size=1  # mini batch size
         )
 
 
@@ -102,7 +106,7 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
     # Setting the curriculum learner
     curriculum = CurriculumLearner(tester.get_task_rms())
     curriculum.num_steps = testing_params.num_steps  # 100
-    curriculum.total_steps = 200 * step_unit
+    curriculum.total_steps = 500 * step_unit  # 100*step_unit for qrm
     # curriculum.total_steps = 10 * step_unit  # for test only
     curriculum.min_steps = 1
 
@@ -145,7 +149,7 @@ def get_params_water_world(alg_name, experiment, use_rs, use_wandb):
             gamma=0.9,
             max_timesteps_per_task=testing_params.num_steps,
             buffer_size=testing_params.num_steps,
-            batch_size=testing_params.num_steps,
+            batch_size=64,  # mini batch size
             print_freq=step_unit,
             clip_rate=0.1,
             lam=0.8,

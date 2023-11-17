@@ -1,6 +1,8 @@
 import argparse, os, sys, time
 import random
 import wandb
+import torch
+import numpy as np
 
 file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
@@ -40,7 +42,14 @@ def run_experiment(args, tester, curriculum):
         run_pporm_experiments(tester, curriculum, show_print, use_cuda)
 
 
-def get_config(alg_name):
+def get_config(alg_name, args, learning_params):
+    if args.set_params:
+        learning_params.lr = args.lr
+        learning_params.buffer_size = args.buffer_size
+        learning_params.batch_size = args.batch_size
+        learning_params.entropy_loss_coef = args.e_coef
+        learning_params.n_updates = args.n_updates
+
     if alg_name in ["qrm", "qrm-rs"]:
         config = {"seed": s,
                   "lr": learning_params.lr,
@@ -58,6 +67,12 @@ def get_config(alg_name):
                   "entropy_loss_coef": learning_params.entropy_loss_coef,
                   }
     return config
+
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 if __name__ == "__main__":
@@ -81,6 +96,18 @@ if __name__ == "__main__":
                         help='Whether to use wandb or not.')
     parser.add_argument('--use_cuda', action='store_true',
                         help='Whether to use cuda or not.')
+    parser.add_argument('--notes', default='', type=str,
+                        help='Notes on the algorithm, shown in wandb.')
+
+
+    # add learning params in command lines for tests
+    parser.add_argument('--set_params', action='store_true', help='Whether to set learning parameters in command lines.')
+    parser.add_argument('--lr', default=1e-5, type=float, help='learning rate')
+    parser.add_argument('--buffer_size', default=1000, type=int, help='buffer size')
+    parser.add_argument('--batch_size', default=1000, type=int, help='(mini) batch size')
+    parser.add_argument('--n_updates', default=10, type=int, help='updated times for ppo')
+    parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
+
 
     args = parser.parse_args()
     if args.algorithm not in algorithms: raise NotImplementedError(
@@ -102,7 +129,7 @@ if __name__ == "__main__":
 
     for s in args.seeds:
         print("*" * 10, "seed:", s, "*" * 10)
-
+        # get default params for each env, defined in get_params.py
         if world == 'officeworld':
             tester, curriculum = get_params_office_world(alg_name, experiment, use_rs, use_wandb)
         if world == 'craftworld':
@@ -112,13 +139,14 @@ if __name__ == "__main__":
 
         learning_params = tester.learning_params
         saver = Saver(alg_name, tester, curriculum)
-        config = get_config(alg_name)
+        config = get_config(alg_name, args, learning_params)
         print("alg_name:", alg_name)
         for key, value in config.items():
             print("%s:"%key, value)
         if use_wandb:
             wandb.init(
                 project="RewardMachines-torch",
+                notes=args.notes,
                 group=world,
                 name=alg_name,
                 config=config
