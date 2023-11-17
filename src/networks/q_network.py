@@ -16,6 +16,7 @@ class QRMNet(nn.Module):
             self.qrm_net.append(q_net)
 
     def forward(self, state):
+
         # return Q-values of all policies
         q_values = []
         for i in range(self.num_policies):
