@@ -10,7 +10,7 @@ from src.networks.q_network import QRMNet
 
 class RMAgent:
     """
-    Basic agent with reward machines.
+    Agent with reward machines only, without RL module.
     """
 
     def __init__(self, reward_machines):

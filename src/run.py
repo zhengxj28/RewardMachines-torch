@@ -7,12 +7,13 @@ import numpy as np
 file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
 
-from src.algos.qrm import run_qrm_experiments
+from src.algos.qrm import QRMAlgo
 from src.algos.pporm import run_pporm_experiments
 from get_params import *
 from src.tester.saver import Saver
 
 # The pickle library is asking me to have access to Ball and BallAgent from the main...
+# Do not delete this line
 from src.worlds.water_world import Ball, BallAgent
 
 
@@ -35,14 +36,16 @@ def run_experiment(args, tester, curriculum):
 
     # QRM
     if alg_name in ["qrm", "qrm-rs"]:
-        run_qrm_experiments(tester, curriculum, show_print, use_cuda)
+        algo = QRMAlgo(tester, curriculum, show_print, use_cuda)
+        # run_qrm_experiments(tester, curriculum, show_print, use_cuda)
 
     # PPORM
-    if alg_name in ["pporm", "pporm-rs"]:
-        run_pporm_experiments(tester, curriculum, show_print, use_cuda)
+    # if alg_name in ["pporm", "pporm-rs"]:
+    #     run_pporm_experiments(tester, curriculum, show_print, use_cuda)
+    algo.run_experiments()
 
 
-def get_config(alg_name, args, learning_params):
+def get_wandb_config(alg_name, args, learning_params):
     if args.set_params:
         learning_params.lr = args.lr
         learning_params.buffer_size = args.buffer_size
@@ -129,6 +132,7 @@ if __name__ == "__main__":
 
     for s in args.seeds:
         print("*" * 10, "seed:", s, "*" * 10)
+
         # get default params for each env, defined in get_params.py
         if world == 'officeworld':
             tester, curriculum = get_params_office_world(alg_name, experiment, use_rs, use_wandb)
@@ -139,20 +143,20 @@ if __name__ == "__main__":
 
         learning_params = tester.learning_params
         saver = Saver(alg_name, tester, curriculum)
-        config = get_config(alg_name, args, learning_params)
         print("alg_name:", alg_name)
-        for key, value in config.items():
-            print("%s:"%key, value)
         if use_wandb:
+            wandb_config = get_wandb_config(alg_name, args, learning_params)
+            for key, value in wandb_config.items():
+                print("%s:" % key, value)
             wandb.init(
                 project="RewardMachines-torch",
                 notes=args.notes,
                 group=world,
                 name=alg_name,
-                config=config
+                config=wandb_config
             )
         time_init = time.time()
-        random.seed(s)
+        setup_seed(s)
         run_experiment(args, tester, curriculum)
         print("Time:", "%0.2f" % ((time.time() - time_init) / 60), "mins")
         saver.save_results(filename="seed%d.npy" % s)

@@ -4,14 +4,15 @@ import torch.optim as optim
 import random
 from src.networks.q_network import QRMNet
 from src.agents.rm_agent import RMAgent
+from src.agents.base_rl_agent import BaseRLAgent
 
-class QRMAgent(RMAgent):
+class QRMAgent(BaseRLAgent, RMAgent):
     """
     This class includes a list of policies (a.k.a neural nets) for decomposing reward machines
     """
 
     def __init__(self, num_features, num_actions, learning_params, reward_machines, curriculum, use_cuda):
-        super().__init__(reward_machines)
+        RMAgent.__init__(self, reward_machines)
 
         self.num_features = num_features
         self.num_actions = num_actions
@@ -33,8 +34,6 @@ class QRMAgent(RMAgent):
         else:
             self.optimizer = optim.Adam(self.qrm_net.parameters(), lr=learning_params.lr)
 
-    def update_target_network(self):
-        self.tar_qrm_net.load_state_dict(self.qrm_net.state_dict())
 
     def learn(self):
         s1, a, s2, rs, nps, _ = self.buffer.sample(self.learning_params.batch_size)
@@ -90,6 +89,9 @@ class QRMAgent(RMAgent):
         self.update_rm_state(events)
         # Adding this experience to the experience replay buffer
         self.buffer.add_data(s1, a, s2, rewards, next_policies, done)
+
+    def update_target_network(self):
+        self.tar_qrm_net.load_state_dict(self.qrm_net.state_dict())
 
 class ReplayBuffer(object):
     # TODO: prioritized replay buffer
