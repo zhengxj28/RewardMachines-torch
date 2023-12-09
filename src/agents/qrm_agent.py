@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
-from src.networks.q_network import QRMNet
+from src.networks.rm_network import QRMNet
 from src.agents.rm_agent import RMAgent
 from src.agents.base_rl_agent import BaseRLAgent
 
@@ -11,8 +11,8 @@ class QRMAgent(BaseRLAgent, RMAgent):
     This class includes a list of policies (a.k.a neural nets) for decomposing reward machines
     """
 
-    def __init__(self, num_features, num_actions, learning_params, reward_machines, curriculum, use_cuda):
-        RMAgent.__init__(self, reward_machines)
+    def __init__(self, num_features, num_actions, learning_params, reward_machines, tester, curriculum, use_cuda):
+        RMAgent.__init__(self, reward_machines, tester)
 
         self.num_features = num_features
         self.num_actions = num_actions
@@ -73,22 +73,27 @@ class QRMAgent(BaseRLAgent, RMAgent):
             a = torch.argmax(q_value).cpu().item()
         return int(a)
 
-    def update(self, s1, a, s2, events, done):
-        # Getting rewards and next states for each reward machine to learn
-        rewards, next_policies = [], []
-        reward_machines = self.reward_machines
-        for j in range(len(reward_machines)):
-            j_rewards, j_next_states = reward_machines[j].get_rewards_and_next_states(s1, a, s2, events)
-            rewards.append(j_rewards)
-            next_policies.append(j_next_states)
-        # Mapping rewards and next states to specific policies in the policy bank
-        rewards = self.map_rewards(rewards)
-        next_policies = self.map_next_policies(next_policies)
+    def update(self, s1, a, s2, events, done, eval_mode=False):
+        if not eval_mode:
+            # Getting rewards and next states for each reward machine to learn
+            rewards, next_policies = [], []
+            reward_machines = self.reward_machines
+            for j in range(len(reward_machines)):
+                j_rewards, j_next_states = reward_machines[j].get_rewards_and_next_states(s1, a, s2, events)
+                rewards.append(j_rewards)
+                next_policies.append(j_next_states)
+            # Mapping rewards and next states to specific policies in the policy bank
+            rewards = self.map_rewards(rewards)
+            next_policies = self.map_next_policies(next_policies)
+            # Adding this experience to the experience replay buffer
+            self.buffer.add_data(s1, a, s2, rewards, next_policies, done)
 
         # update current rm state
-        self.update_rm_state(events)
-        # Adding this experience to the experience replay buffer
-        self.buffer.add_data(s1, a, s2, rewards, next_policies, done)
+        self.update_rm_state(events, eval_mode)
+
+    def reset_status(self, rm_file, eval_mode=False):
+        rm_id = self.tester.get_reward_machine_id_from_file(rm_file)
+        self.set_rm(rm_id, eval_mode)
 
     def update_target_network(self):
         self.tar_qrm_net.load_state_dict(self.qrm_net.state_dict())

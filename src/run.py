@@ -142,7 +142,7 @@ if __name__ == "__main__":
             tester, curriculum = get_params_water_world(alg_name, experiment, use_rs, use_wandb)
 
         learning_params = tester.learning_params
-        saver = Saver(alg_name, tester, curriculum)
+        # saver = Saver(alg_name, tester, curriculum)
         print("alg_name:", alg_name)
         if use_wandb:
             wandb_config = get_wandb_config(alg_name, args, learning_params)
@@ -159,5 +159,5 @@ if __name__ == "__main__":
         setup_seed(s)
         run_experiment(args, tester, curriculum)
         print("Time:", "%0.2f" % ((time.time() - time_init) / 60), "mins")
-        saver.save_results(filename="seed%d.npy" % s)
+        # saver.save_results(filename="seed%d.npy" % s)
         if use_wandb: wandb.finish()

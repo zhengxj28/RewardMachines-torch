@@ -40,6 +40,10 @@ class Tester:
             rm_file = os.path.join(os.path.dirname(__file__), "..", rm_file)
             self.reward_machines.append(RewardMachine(rm_file, use_rs, learning_params.gamma))
 
+        self.reward_machine_to_file = {}
+        for file, rm_id in self.file_to_reward_machine.items():
+            self.reward_machine_to_file[rm_id] = file
+
         # I store the results here
         self.rewards = {}
         self.steps = []
@@ -59,6 +63,12 @@ class Tester:
 
     def get_reward_machine_id_from_file(self, rm_file):
         return self.file_to_reward_machine[rm_file]
+
+    def get_file_from_reward_machine_id(self, rm_id):
+        return self.reward_machine_to_file[rm_id]
+
+    def get_rm_files(self):
+        return self.file_to_reward_machine.keys()
 
     def get_reward_machine_id(self, task_specification):
         rm_file = self.world.get_task_rm_file(task_specification)

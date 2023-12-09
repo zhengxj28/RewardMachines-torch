@@ -92,3 +92,21 @@ class LearningParameters:
         # Network architecture
         self.num_hidden_layers = num_hidden_layers
         self.num_neurons = num_neurons
+
+class TransformerParams:
+    def __init__(self, d_model=None,
+                 n_head=None,
+                 num_encoder_layers=None,
+                 pool=None,
+                 dim_feedforward=None,
+                 dropout=None,
+                 d_out=None,
+                 layer_norm_eps=None):
+        self.d_model = d_model
+        self.nhead = n_head
+        self.num_encoder_layers = num_encoder_layers
+        self.pool = pool
+        self.dim_feedforward = dim_feedforward
+        self.dropout = dropout
+        self.d_out = d_out
+        self.layer_norm_eps = layer_norm_eps

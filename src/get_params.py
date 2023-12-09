@@ -118,7 +118,7 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
 
 
 def get_params_water_world(alg_name, experiment, use_rs, use_wandb):
-    step_unit = 1000
+    step_unit = 1  # 1000
     testing_params = TestingParameters(
         test=True,
         test_freq=10 * step_unit,

@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from torch.distributions import Categorical
 import time, random
 import numpy as np
-from src.networks.q_network import QRMNet
 
 
 class RMAgent:
@@ -13,9 +12,9 @@ class RMAgent:
     Agent with reward machines only, without RL module.
     """
 
-    def __init__(self, reward_machines):
+    def __init__(self, reward_machines, tester):
         self.reward_machines = reward_machines  # all reward machines
-
+        self.tester = tester
         self.rm_id = None  # current reward machine
         self.u = None  # current state of current reward machine
         self.rm_id_eval = None  # current reward machine while evaluating
