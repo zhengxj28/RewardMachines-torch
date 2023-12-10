@@ -56,7 +56,7 @@ class QRMAlgo(BaseAlgo):
         self.agent.reset_status(rm_file, False)
 
         # Starting interaction with the environment
-        num_steps = learning_params.max_timesteps_per_task
+        num_steps = testing_params.num_steps
         for t in range(num_steps):
             curriculum.add_step()
             a = agent.get_action(s1)

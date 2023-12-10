@@ -1,8 +1,15 @@
 from tester.tester import Tester
 from tester.testing_params import TestingParameters
-from common.curriculum import CurriculumLearner
+from common.curriculum import MultiTaskCurriculumLearner
 from tester.learning_params import LearningParameters
 
+def get_tester_curriculum(learning_params, testing_params, experiment, use_rs, use_wandb):
+    tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
+
+    # Setting the curriculum learner
+    curriculum = MultiTaskCurriculumLearner(tester.get_task_rms())
+    curriculum.total_steps = learning_params.step_unit*learning_params.total_units
+    return tester, curriculum
 
 def get_params_craft_world(alg_name, experiment, use_rs, use_wandb):
     step_unit = 1000
@@ -44,7 +51,7 @@ def get_params_craft_world(alg_name, experiment, use_rs, use_wandb):
     tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
 
     # Setting the curriculum learner
-    curriculum = CurriculumLearner(tester.get_task_rms())
+    curriculum = MultiTaskCurriculumLearner(tester.get_task_rms())
     curriculum.num_steps = testing_params.num_steps
     curriculum.total_steps = 1000 * step_unit
     curriculum.min_steps = 1
@@ -61,19 +68,21 @@ def get_params_craft_world(alg_name, experiment, use_rs, use_wandb):
 
 
 def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
-    step_unit = 500
+
     # configuration of testing params
     testing_params = TestingParameters(
         test=True,
-        test_freq=1 * step_unit,
+        test_freq=1 * 500,
         num_steps=1000
     )
 
     if alg_name in ["qrm", "qrm-rs"]:
         # configuration of learning params
         learning_params = LearningParameters(
+            total_units=100,
+            step_unit=500,
             gamma=0.9, tabular_case=True,
-            max_timesteps_per_task=testing_params.num_steps,
+            # max_timesteps_per_task=1000,
             epsilon=0.1,
             lr=1,
             batch_size=1,
@@ -82,33 +91,24 @@ def get_params_office_world(alg_name, experiment, use_rs, use_wandb):
             target_network_update_freq=1
         )
 
-    if alg_name in ["pporm", "pporm-rs"]:
-        # configuration of learning params
-        learning_params = LearningParameters(
-            gamma=0.9, tabular_case=True,
-            max_timesteps_per_task=testing_params.num_steps,
-            lr=1,
-            clip_rate=0.1,
-            lam=0.8,
-            policy_loss_coef=1e-4,
-            value_loss_coef=1,
-            entropy_loss_coef=1,
-            n_updates=4,
-            learning_starts=1,
-            buffer_size=100,
-            batch_size=1  # mini batch size
-        )
+    # if alg_name in ["pporm", "pporm-rs"]:
+    #     # configuration of learning params
+    #     learning_params = LearningParameters(
+    #         gamma=0.9, tabular_case=True,
+    #         max_timesteps_per_task=testing_params.num_steps,
+    #         lr=1,
+    #         clip_rate=0.1,
+    #         lam=0.8,
+    #         policy_loss_coef=1e-4,
+    #         value_loss_coef=1,
+    #         entropy_loss_coef=1,
+    #         n_updates=4,
+    #         learning_starts=1,
+    #         buffer_size=100,
+    #         batch_size=1  # mini batch size
+    #     )
 
-
-    # Setting the experiment
-    tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
-
-    # Setting the curriculum learner
-    curriculum = CurriculumLearner(tester.get_task_rms())
-    curriculum.num_steps = testing_params.num_steps  # 100
-    curriculum.total_steps = 500 * step_unit  # 100*step_unit for qrm
-    # curriculum.total_steps = 10 * step_unit  # for test only
-    curriculum.min_steps = 1
+    tester, curriculum = get_tester_curriculum(learning_params, testing_params, experiment, use_rs, use_wandb)
 
     print("Office World ----------")
     print("num_steps:", testing_params.num_steps)
@@ -168,7 +168,7 @@ def get_params_water_world(alg_name, experiment, use_rs, use_wandb):
     tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
 
     # Setting the curriculum learner
-    curriculum = CurriculumLearner(tester.get_task_rms())
+    curriculum = MultiTaskCurriculumLearner(tester.get_task_rms())
     curriculum.num_steps = 300
     curriculum.total_steps = 2000 * step_unit
     curriculum.min_steps = 1

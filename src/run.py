@@ -66,10 +66,11 @@ def get_wandb_config(alg_name, args, learning_params):
                   "batch_size": learning_params.batch_size,
                   "n_updates": learning_params.n_updates,
                   "policy_loss_coef": learning_params.policy_loss_coef,
-                  "value_loss_coef" : learning_params.value_loss_coef,
+                  "value_loss_coef": learning_params.value_loss_coef,
                   "entropy_loss_coef": learning_params.entropy_loss_coef,
                   }
     return config
+
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -102,15 +103,14 @@ if __name__ == "__main__":
     parser.add_argument('--notes', default='', type=str,
                         help='Notes on the algorithm, shown in wandb.')
 
-
     # add learning params in command lines for tests
-    parser.add_argument('--set_params', action='store_true', help='Whether to set learning parameters in command lines.')
+    parser.add_argument('--set_params', action='store_true',
+                        help='Whether to set learning parameters in command lines.')
     parser.add_argument('--lr', default=1e-5, type=float, help='learning rate')
     parser.add_argument('--buffer_size', default=1000, type=int, help='buffer size')
     parser.add_argument('--batch_size', default=1000, type=int, help='(mini) batch size')
     parser.add_argument('--n_updates', default=10, type=int, help='updated times for ppo')
     parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
-
 
     args = parser.parse_args()
     if args.algorithm not in algorithms: raise NotImplementedError(

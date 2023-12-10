@@ -15,7 +15,7 @@ class Tester:
         # Reading the file
         self.experiment = experiment
         self.use_wandb = use_wandb
-        self.loss_info = {}  # loss information
+        # self.loss_info = {}  # loss information
         self.last_test_time = time.time()  # last testing time
         f = open(experiment)
         lines = [l.rstrip() for l in f]
@@ -92,49 +92,49 @@ class Tester:
         r = self.world.optimal[task_specification]
         return r if r > 0 else 1.0
 
-    def run_test(self, step, test_function, *test_args):
-        t_init = time.time()
-        # 'test_function' parameters should be (sess, task_params, learning_params, testing_params, *test_args)
-        # and returns the reward
-        reward_machines = self.get_reward_machines()
-        rewards_of_each_task = []
-        for task_specification in self.get_task_specifications():
-            task_str = str(task_specification)
-            task_params = self.get_task_params(task_specification)
-            task_rm_id = self.get_reward_machine_id(task_specification)
-            reward = test_function(reward_machines, task_params, task_rm_id, self.testing_params, *test_args)
-            if step not in self.rewards[task_str]:
-                self.rewards[task_str][step] = []
-            if len(self.steps) == 0 or self.steps[-1] < step:
-                self.steps.append(step)
-            self.rewards[task_str][step].append(reward)
-            rewards_of_each_task.append(reward)
+    # def run_test(self, step, test_function, *test_args):
+    #     t_init = time.time()
+    #     # 'test_function' parameters should be (sess, task_params, learning_params, testing_params, *test_args)
+    #     # and returns the reward
+    #     reward_machines = self.get_reward_machines()
+    #     rewards_of_each_task = []
+    #     for task_specification in self.get_task_specifications():
+    #         task_str = str(task_specification)
+    #         task_params = self.get_task_params(task_specification)
+    #         task_rm_id = self.get_reward_machine_id(task_specification)
+    #         reward = test_function(reward_machines, task_params, task_rm_id, self.testing_params, *test_args)
+    #         if step not in self.rewards[task_str]:
+    #             self.rewards[task_str][step] = []
+    #         if len(self.steps) == 0 or self.steps[-1] < step:
+    #             self.steps.append(step)
+    #         self.rewards[task_str][step].append(reward)
+    #         rewards_of_each_task.append(reward)
+    #
+    #     total_reward = sum(rewards_of_each_task)
+    #     self.total_rewards.append(total_reward)
+    #
+    #     cur_time = time.time()
+    #     training_time = (cur_time-self.last_test_time)/60
+    #     print("Training time: %0.2f minutes."%(training_time))
+    #     self.last_test_time = cur_time
+    #
+    #     print("Steps: %d\tTesting: %0.1f" % (step, cur_time - t_init),
+    #           "seconds\tTotal Reward: %0.1f" % total_reward)
+    #     print("\t".join(["%0.1f" % (r) for r in rewards_of_each_task]))
+    #
+    #     log_reward = {"total": sum(rewards_of_each_task)}
+    #     for i in range(len(rewards_of_each_task)):
+    #         log_reward["task%d"%i] = rewards_of_each_task[i]
+    #
+    #     for key, value in self.loss_info.items():
+    #         print("%s: %.4f"%(key, value), end='\t')
+    #     print('\n')
+    #
+    #     if self.use_wandb:
+    #         wandb.log({"reward": log_reward, "loss": self.loss_info, "training_time": training_time})
 
-        total_reward = sum(rewards_of_each_task)
-        self.total_rewards.append(total_reward)
-
-        cur_time = time.time()
-        training_time = (cur_time-self.last_test_time)/60
-        print("Training time: %0.2f minutes."%(training_time))
-        self.last_test_time = cur_time
-
-        print("Steps: %d\tTesting: %0.1f" % (step, cur_time - t_init),
-              "seconds\tTotal Reward: %0.1f" % total_reward)
-        print("\t".join(["%0.1f" % (r) for r in rewards_of_each_task]))
-
-        log_reward = {"total": sum(rewards_of_each_task)}
-        for i in range(len(rewards_of_each_task)):
-            log_reward["task%d"%i] = rewards_of_each_task[i]
-
-        for key, value in self.loss_info.items():
-            print("%s: %.4f"%(key, value), end='\t')
-        print('\n')
-
-        if self.use_wandb:
-            wandb.log({"reward": log_reward, "loss": self.loss_info, "training_time": training_time})
-
-    def save_loss_info(self, loss_info):
-        self.loss_info = loss_info
+    # def save_loss_info(self, loss_info):
+    #     self.loss_info = loss_info
 
     def show_results(self):
         average_reward = {}

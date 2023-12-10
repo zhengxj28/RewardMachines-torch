@@ -1,5 +1,9 @@
 class LearningParameters:
-    def __init__(self, lr=0.001, max_timesteps_per_task=100000, buffer_size=50000,
+    def __init__(self, lr=0.001,
+                 max_timesteps_per_task=100000,
+                 step_unit=500,
+                 total_units=100,
+                 buffer_size=50000,
                  print_freq=1000, epsilon=0.1, exploration_fraction=0.1, exploration_final_eps=0.02,
                  train_freq=1, batch_size=32,
                  clip_rate=0.1, lam=0.8, n_updates=10,
@@ -57,7 +61,9 @@ class LearningParameters:
             epsilon to add_data to the TD errors when updating priorities.
         """
         self.lr = lr
-        self.max_timesteps_per_task = max_timesteps_per_task
+        # self.max_timesteps_per_task = max_timesteps_per_task
+        self.step_unit = step_unit
+        self.total_units = total_units
         self.buffer_size = buffer_size
         self.epsilon = epsilon
         self.exploration_fraction = exploration_fraction
@@ -92,6 +98,7 @@ class LearningParameters:
         # Network architecture
         self.num_hidden_layers = num_hidden_layers
         self.num_neurons = num_neurons
+
 
 class TransformerParams:
     def __init__(self, d_model=None,
