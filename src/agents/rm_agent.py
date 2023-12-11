@@ -12,9 +12,9 @@ class RMAgent:
     Agent with reward machines only, without RL module.
     """
 
-    def __init__(self, reward_machines, tester):
+    def __init__(self, reward_machines, task2rm_id):
         self.reward_machines = reward_machines  # all reward machines
-        self.tester = tester
+        self.task2rm_id = task2rm_id
         self.rm_id = None  # current reward machine
         self.u = None  # current state of current reward machine
         self.rm_id_eval = None  # current reward machine while evaluating

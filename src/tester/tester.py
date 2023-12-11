@@ -34,8 +34,10 @@ class Tester:
         self.reward_machines = []
         self.file_to_reward_machine = {}
         rm_files = self.world.get_reward_machine_files()
+        self.rm_file2id = {}
         for i in range(len(rm_files)):
             rm_file = rm_files[i]
+            self.rm_file2id[rm_file] = i
             self.file_to_reward_machine[rm_file] = i
             rm_file = os.path.join(os.path.dirname(__file__), "..", rm_file)
             self.reward_machines.append(RewardMachine(rm_file, use_rs, learning_params.gamma))

@@ -20,7 +20,8 @@ class QRMAlgo(BaseAlgo):
         num_actions = task_aux.num_actions
 
         learning_params = tester.learning_params
-        self.agent = QRMAgent(num_features, num_actions, learning_params, tester.get_reward_machines(), tester, curriculum,
+        self.agent = QRMAgent(num_features, num_actions, learning_params, tester.get_reward_machines(),
+                              tester.rm_file2id,
                               use_cuda)
 
     def create_env(self, rm_file):
@@ -84,7 +85,7 @@ class QRMAlgo(BaseAlgo):
                 self.evaluate(cur_step)
 
             # Restarting the environment (Game Over)
-            if done:
+            if done or curriculum.stop_learning():
                 break
                 # s2 = env.reset()
                 # agent.set_rm(task_rm_id)
@@ -92,8 +93,8 @@ class QRMAlgo(BaseAlgo):
                 #     break
 
             # checking the steps time-out
-            if curriculum.stop_learning():
-                break
+            # if curriculum.stop_learning():
+            #     break
 
             # Moving to the next state
             s1 = s2
