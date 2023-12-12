@@ -16,7 +16,7 @@ of the formula in the form of a DFA.
 
 
 def extract_propositions(ltl_formula):
-    return list(set(_get_propositions(ltl_formula)))
+    return list(set(get_propositions(ltl_formula)))
 
 
 def get_dfa(ltl_formula):
@@ -42,7 +42,7 @@ def get_dfa(ltl_formula):
         transitions[u] = {}
         for label in label_set:
             # progressing formula, add transition
-            f_progressed = _progress(formula, label)
+            f_progressed = progress(formula, label)
             if f_progressed not in ltl2state:  # add index for new state
                 if f_progressed == 'False':
                     ltl2state[f_progressed] = -1
@@ -79,17 +79,18 @@ def _get_truth_assignments(propositions_list):
     return truth_assignments
 
 
-def _get_propositions(ltl_formula):
+def get_propositions(ltl_formula):
     if type(ltl_formula) == str:
+        # automic proposition
         if ltl_formula in ['True', 'False']:
-            return []
-        return [ltl_formula]
+            return set()
+        return {ltl_formula}
 
     if ltl_formula[0] in ['not', 'next', 'eventually']:  # unary operator
-        return _get_propositions(ltl_formula[1])
-
-    # 'and', 'or', 'until'
-    return _get_propositions(ltl_formula[1]) + _get_propositions(ltl_formula[2])
+        return get_propositions(ltl_formula[1])
+    else:
+        # 'and', 'or', 'until', 'then'
+        return get_propositions(ltl_formula[1]) | get_propositions(ltl_formula[2])
 
 
 def _is_prop_formula(f):
@@ -141,7 +142,7 @@ def _subsume_then(f1, f2):  # test, need to be refined
     return False
 
 
-def _progress(ltl_formula, truth_assignment):
+def progress(ltl_formula, truth_assignment):
     if type(ltl_formula) == str:
         # True, False, or atomic proposition
         if len(ltl_formula) == 1:
@@ -154,7 +155,7 @@ def _progress(ltl_formula, truth_assignment):
 
     if ltl_formula[0] == 'not':
         # negations should be over propositions_list only according to the co-safe ltl syntactic restriction
-        result = _progress(ltl_formula[1], truth_assignment)
+        result = progress(ltl_formula[1], truth_assignment)
         if result == 'True':
             return 'False'
         elif result == 'False':
@@ -165,21 +166,21 @@ def _progress(ltl_formula, truth_assignment):
             return ('not', result)
 
     if ltl_formula[0] == 'and':
-        res1 = _progress(ltl_formula[1], truth_assignment)
-        res2 = _progress(ltl_formula[2], truth_assignment)
+        res1 = progress(ltl_formula[1], truth_assignment)
+        res2 = progress(ltl_formula[2], truth_assignment)
         return _and_ltl(res1, res2)
 
     if ltl_formula[0] == 'or':
-        res1 = _progress(ltl_formula[1], truth_assignment)
-        res2 = _progress(ltl_formula[2], truth_assignment)
+        res1 = progress(ltl_formula[1], truth_assignment)
+        res2 = progress(ltl_formula[2], truth_assignment)
         return _or_ltl(res1, res2)
 
     if ltl_formula[0] == 'next':
         return ltl_formula[1]
 
     if ltl_formula[0] == 'until':
-        res1 = _progress(ltl_formula[1], truth_assignment)
-        res2 = _progress(ltl_formula[2], truth_assignment)
+        res1 = progress(ltl_formula[1], truth_assignment)
+        res2 = progress(ltl_formula[2], truth_assignment)
         if res1 == 'False':
             f1 = 'False'
         elif res1 == 'True':
@@ -195,7 +196,7 @@ def _progress(ltl_formula, truth_assignment):
             return res2  # in this case f1 implies res2, thus ('or', res2, f1)==res2
 
     if ltl_formula[0] == 'eventually':
-        res1 = _progress(ltl_formula[1], truth_assignment)
+        res1 = progress(ltl_formula[1], truth_assignment)
         if res1 == 'True':
             return 'True'
         elif res1 == 'False':
@@ -205,11 +206,11 @@ def _progress(ltl_formula, truth_assignment):
 
     if ltl_formula[0] == 'then':
         if ltl_formula[1] == 'True':
-            return _progress(ltl_formula[2], truth_assignment)
+            return progress(ltl_formula[2], truth_assignment)
         elif ltl_formula[1] == 'False':
             return 'False'
         else:
-            res1 = _progress(ltl_formula[1], truth_assignment)
+            res1 = progress(ltl_formula[1], truth_assignment)
             if res1 == 'True':
                 return ltl_formula[2]
             elif res1 == 'False':
@@ -272,4 +273,4 @@ if __name__ == "__main__":
     res1 = ('then', ('until', ('not', 'n'), 'c'), ('until', ('not', 'n'), 'o'))
     res2 = ('until', ('not', 'n'), 'o')
     comp_ltl = _and_ltl(res1, res2)
-    _progress(comp_ltl, 'c')
+    progress(comp_ltl, 'c')

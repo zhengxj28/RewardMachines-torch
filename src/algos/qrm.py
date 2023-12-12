@@ -20,15 +20,16 @@ class QRMAlgo(BaseAlgo):
         num_actions = task_aux.num_actions
 
         learning_params = tester.learning_params
-        self.agent = QRMAgent(num_features, num_actions, learning_params, tester.get_reward_machines(),
-                              tester.rm_file2id,
+        self.agent = QRMAgent(num_features, num_actions, learning_params,
+                              tester.get_reward_machines(),
+                              tester.task2rm_id,
                               use_cuda)
 
-    def create_env(self, rm_file):
+    def create_env(self, task):
         tester = self.tester
         reward_machines = tester.get_reward_machines()
-        task_rm_id = tester.get_reward_machine_id_from_file(rm_file)
-        task_params = tester.get_task_params(rm_file)
+        task_rm_id = tester.get_reward_machine_id_from_file(task)
+        task_params = tester.get_task_params(task)
 
         rm = reward_machines[task_rm_id]
         env = Game(task_params, rm)
@@ -36,7 +37,7 @@ class QRMAlgo(BaseAlgo):
         # self.agent.set_rm(task_rm_id)
         return env
 
-    def train_episode(self, rm_file):
+    def train_episode(self, task):
         """
         This code runs one training episode.
             - rm_file: It is the path towards the RM machine to solve on this episode
@@ -52,9 +53,9 @@ class QRMAlgo(BaseAlgo):
 
         training_reward = 0
         # Getting the initial state of the environment and the reward machine
-        env = self.create_env(rm_file)
+        env = self.create_env(task)
         s1 = env.reset()
-        self.agent.reset_status(rm_file, False)
+        self.agent.reset_status(task, False)
 
         # Starting interaction with the environment
         num_steps = testing_params.num_steps

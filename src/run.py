@@ -96,10 +96,14 @@ if __name__ == "__main__":
                         help='This parameter indicated which map to use. It must be a number between 0 and 10.')
     parser.add_argument('--seeds', nargs='+', type=int, default=[0],
                         help='A list of random seeds to run experiments.')
+    parser.add_argument('--use_rs', action='store_true',
+                        help='Whether to use reward shaping of reward machines.')
     parser.add_argument('--use_wandb', action='store_true',
-                        help='Whether to use wandb or not.')
+                        help='Whether to show experimental results on wandb or not.')
     parser.add_argument('--use_cuda', action='store_true',
                         help='Whether to use cuda or not.')
+    parser.add_argument('--load_rm_mode', default='files',
+                        help='files: load rm from files; formulas: automatically generate rm by ltl progression.')
     parser.add_argument('--notes', default='', type=str,
                         help='Notes on the algorithm, shown in wandb.')
 
@@ -128,18 +132,18 @@ if __name__ == "__main__":
     experiment = os.path.join(project_path, "..", "experiments", world, "tests", filename)
     world += "world"
 
-    use_rs = alg_name.endswith("-rs")
+    # use_rs = alg_name.endswith("-rs")
 
     for s in args.seeds:
         print("*" * 10, "seed:", s, "*" * 10)
 
         # get default params for each env, defined in get_params.py
         if world == 'officeworld':
-            tester, curriculum = get_params_office_world(alg_name, experiment, use_rs, use_wandb)
+            tester, curriculum = get_params_office_world(alg_name, experiment, args)
         if world == 'craftworld':
-            tester, curriculum = get_params_craft_world(alg_name, experiment, use_rs, use_wandb)
+            tester, curriculum = get_params_craft_world(alg_name, experiment, args)
         if world == 'waterworld':
-            tester, curriculum = get_params_water_world(alg_name, experiment, use_rs, use_wandb)
+            tester, curriculum = get_params_water_world(alg_name, experiment, args)
 
         learning_params = tester.learning_params
         # saver = Saver(alg_name, tester, curriculum)
@@ -149,7 +153,7 @@ if __name__ == "__main__":
             for key, value in wandb_config.items():
                 print("%s:" % key, value)
             wandb.init(
-                project="RewardMachines-torch",
+                project="zxj-LLM-Research",
                 notes=args.notes,
                 group=world,
                 name=alg_name,

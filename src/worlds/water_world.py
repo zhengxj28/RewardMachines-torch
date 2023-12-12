@@ -491,7 +491,7 @@ def play():
                                   b_num_per_color=b_num_per_color, use_velocities=use_velocities,
                                   ball_disappear=ball_disappear)
     else:
-        task = tester.get_task_rms()[-2]
+        task = tester.get_tasks()[-2]
         params = tester.get_task_params(task).game_params
 
     max_x, max_y = params.max_x, params.max_y

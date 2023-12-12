@@ -89,8 +89,8 @@ class QRMAgent(BaseRLAgent, RMAgent):
         # update current rm state
         self.update_rm_state(events, eval_mode)
 
-    def reset_status(self, rm_file, eval_mode=False):
-        rm_id = self.task2rm_id[rm_file]
+    def reset_status(self, task, eval_mode=False):
+        rm_id = self.task2rm_id[task]
         self.set_rm(rm_id, eval_mode)
 
     def update_target_network(self):

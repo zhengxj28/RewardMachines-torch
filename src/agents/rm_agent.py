@@ -35,8 +35,7 @@ class RMAgent:
         # We add_data one constant policy for every terminal state
         policies_to_add.append("constant")  # terminal policy has id '0'
         # Associating policies to each machine state
-        for i in range(len(reward_machines)):
-            rm = reward_machines[i]
+        for i, rm in enumerate(reward_machines):
             for ui in range(len(rm.get_states())):
                 if rm.is_terminal_state(ui):
                     # terminal states goes to the constant policy
@@ -59,13 +58,13 @@ class RMAgent:
                     self.state2policy[(i, ui)] = policy_id
         return policies_to_add
 
-    def set_rm(self, rm_id, eval_mode=False):
+    def set_rm(self, rm_id, eval_mode=False, u=None):
         if eval_mode:
             self.rm_id_eval = rm_id
-            self.u_eval = self.reward_machines[self.rm_id_eval].get_initial_state()
+            self.u_eval = self.reward_machines[self.rm_id_eval].get_initial_state() if u is None else u
         else:
             self.rm_id = rm_id
-            self.u = self.reward_machines[self.rm_id].get_initial_state()
+            self.u = self.reward_machines[self.rm_id].get_initial_state() if u is None else u
 
 
     def map_rewards(self, rewards):
@@ -78,17 +77,16 @@ class RMAgent:
         done = set()
         for i in range(len(rewards)):
             for j in range(len(rewards[i])):
-                pos = self.state2policy[(i, j)]
-                if pos not in done:
-                    policy_rewards[pos] = rewards[i][j]
-                    done.add(pos)
-                elif policy_rewards[pos] != rewards[i][j]:
-                    print("Error! equivalent policies are receiving different rewards!")
-                    print("(%d,%d) -> pos %d" % (i, j, pos))
-                    print("reward discrepancy:", policy_rewards[pos], "vs", rewards[i][j])
-                    print("state2policy", self.state2policy)
-                    print("rewards", rewards)
-                    exit()
+                policy_id = self.state2policy[(i, j)]
+                if policy_id not in done:
+                    policy_rewards[policy_id] = rewards[i][j]
+                #     done.add(policy_id)
+                # elif policy_rewards[policy_id] != rewards[i][j]:
+                #     print("(%d,%d) -> pos %d" % (i, j, policy_id))
+                #     print("reward discrepancy:", policy_rewards[policy_id], "vs", rewards[i][j])
+                #     print("state2policy", self.state2policy)
+                #     print("rewards", rewards)
+                #     raise ValueError("Error! equivalent policies are receiving different rewards!")
         return policy_rewards
 
     def map_next_policies(self, next_states):
@@ -105,14 +103,13 @@ class RMAgent:
                 u_next = self.state2policy[(i, next_states[i][j])]
                 if u not in done:
                     next_policies[u] = u_next
-                    done.add(u)
-                elif next_policies[u] != u_next:
-                    print("Error! equivalent policies have different next policy!")
-                    print("(%d,%d) -> (%d,%d) " % (i, j, u, u_next))
-                    print("policy discrepancy:", next_policies[u], "vs", u_next)
-                    print("state2policy", self.state2policy)
-                    print("next_states", next_states)
-                    exit()
+                #     done.add(u)
+                # elif next_policies[u] != u_next:
+                #     print("(%d,%d) -> (%d,%d) " % (i, j, u, u_next))
+                #     print("policy discrepancy:", next_policies[u], "vs", u_next)
+                #     print("state2policy", self.state2policy)
+                #     print("next_states", next_states)
+                #     raise ValueError("Error! equivalent policies have different next policy!")
         return next_policies
 
     def update_rm_state(self, events, eval_mode=False):

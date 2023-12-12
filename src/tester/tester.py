@@ -9,52 +9,58 @@ import wandb
 
 
 class Tester:
-    def __init__(self, learning_params, testing_params, experiment, use_rs, use_wandb):
+    def __init__(self, learning_params, testing_params, experiment_file, args):
         self.learning_params = learning_params
         self.testing_params = testing_params
         # Reading the file
-        self.experiment = experiment
-        self.use_wandb = use_wandb
-        # self.loss_info = {}  # loss information
+        self.experiment = experiment_file
+        self.use_wandb = args.use_wandb
         self.last_test_time = time.time()  # last testing time
-        f = open(experiment)
+        f = open(experiment_file)
         lines = [l.rstrip() for l in f]
         f.close()
 
         # setting the right world environment
         self.game_type = eval(lines[0])
         if self.game_type == "officeworld":
-            self.world = TesterOfficeWorld(experiment, learning_params.gamma)
+            self.world = TesterOfficeWorld(experiment_file, learning_params.gamma)
         if self.game_type == "craftworld":
-            self.world = TesterCraftWorld(experiment, learning_params.tabular_case, learning_params.gamma)
+            self.world = TesterCraftWorld(experiment_file, learning_params.tabular_case, learning_params.gamma)
         if self.game_type == "waterworld":
-            self.world = TesterWaterWorld(experiment, learning_params.use_random_maps)
+            self.world = TesterWaterWorld(experiment_file, learning_params.use_random_maps)
 
         # Creating the reward machines for each task
         self.reward_machines = []
-        self.file_to_reward_machine = {}
-        rm_files = self.world.get_reward_machine_files()
-        self.rm_file2id = {}
-        for i in range(len(rm_files)):
-            rm_file = rm_files[i]
-            self.rm_file2id[rm_file] = i
-            self.file_to_reward_machine[rm_file] = i
-            rm_file = os.path.join(os.path.dirname(__file__), "..", rm_file)
-            self.reward_machines.append(RewardMachine(rm_file, use_rs, learning_params.gamma))
+        # a task is a file path of rm or ltl_formula (load_rm_mode=='files' or 'formulas')
+        self.tasks = []
+        self.task2rm_id = {}
 
-        self.reward_machine_to_file = {}
-        for file, rm_id in self.file_to_reward_machine.items():
-            self.reward_machine_to_file[rm_id] = file
+        if args.load_rm_mode == 'files':
+            self.tasks = self.world.rm_files
+            for i, rm_file in enumerate(self.tasks):
+                self.task2rm_id[rm_file] = i
+                rm_file = os.path.join(os.path.dirname(__file__), "..", rm_file)
+                self.reward_machines.append(RewardMachine(rm_file, args.use_rs, learning_params.gamma, False))
 
+        elif args.load_rm_mode == 'formulas':
+            self.tasks = self.world.ltl_files
+            for i, ltl_file in enumerate(self.tasks):
+                self.task2rm_id[ltl_file] = i
+                ltl_file = os.path.join(os.path.dirname(__file__), "..", ltl_file)
+                self.reward_machines.append(RewardMachine(ltl_file, args.use_rs, learning_params.gamma, True))
+        else:
+            raise NotImplementedError('Unexpected load_rm_mode:' + args.load_rm_mode)
+
+        self.rm_id2task = dict([(rm_id, task) for task, rm_id in self.task2rm_id.items()])
         # I store the results here
-        self.rewards = {}
-        self.steps = []
-        aux_tasks = self.get_task_specifications()
-        for task in aux_tasks:
-            # filename = os.path.split(task)[-1]
-            # t_str = os.path.splitext(filename)[0]
-            self.rewards[str(task)] = {}
-
+        # self.rewards = {}
+        # self.steps = []
+        # aux_tasks = self.get_task_specifications()
+        # for task in aux_tasks:
+        #     # filename = os.path.split(task)[-1]
+        #     # t_str = os.path.splitext(filename)[0]
+        #     self.rewards[str(task)] = {}
+        #
         self.total_rewards = []
 
     def get_world_name(self):
@@ -64,13 +70,13 @@ class Tester:
         return self.world.get_task_params(task_specification)
 
     def get_reward_machine_id_from_file(self, rm_file):
-        return self.file_to_reward_machine[rm_file]
+        return self.task2rm_id[rm_file]
 
     def get_file_from_reward_machine_id(self, rm_id):
-        return self.reward_machine_to_file[rm_id]
+        return self.rm_id2task[rm_id]
 
     def get_rm_files(self):
-        return self.file_to_reward_machine.keys()
+        return self.task2rm_id.keys()
 
     def get_reward_machine_id(self, task_specification):
         rm_file = self.world.get_task_rm_file(task_specification)
@@ -86,7 +92,7 @@ class Tester:
         # Returns the list with the task specifications (reward machine + env params)
         return self.world.get_task_specifications()
 
-    def get_task_rms(self):
+    def get_tasks(self):
         # Returns only the reward machines that we are learning
         return self.world.get_reward_machine_files()
 

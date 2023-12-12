@@ -1,6 +1,5 @@
 class LearningParameters:
     def __init__(self, lr=0.001,
-                 max_timesteps_per_task=100000,
                  step_unit=500,
                  total_units=100,
                  buffer_size=50000,
