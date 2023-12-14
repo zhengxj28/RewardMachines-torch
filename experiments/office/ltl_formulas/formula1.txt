@@ -1,5 +1,2 @@
 {'', 'a','b','c','d','e','f','g','n'}
 ('then', ('until', ('not', 'n'), 'f'), ('until', ('not', 'n'), 'g'))    # t1.txt
-('then', ('until', ('not', 'n'), 'e'), ('until', ('not', 'n'), 'g'))    # t2.txt
-('and', ('then', ('until', ('not', 'n'), 'e'), ('until', ('not', 'n'), 'g')), ('then', ('until', ('not', 'n'), 'f'), ('until', ('not', 'n'), 'g'))) # t3.txt
-('then', ('until', ('not', 'n'), 'a'), ('then', ('until', ('not', 'n'), 'd'), ('then', ('until', ('not', 'n'), 'c'), ('until', ('not', 'n'), 'b')))) # t4.txt

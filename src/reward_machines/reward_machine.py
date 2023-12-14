@@ -9,6 +9,7 @@ from src.reward_machines.reward_machine_utils import evaluate_dnf, are_these_mac
 import time, collections
 from src.temporal_logic.ltl_progression import progress, get_propositions
 
+
 class RewardMachine:
     def __init__(self, file, use_rs, gamma, generate_by_ltl=False):
         self.generate_by_ltl = generate_by_ltl
@@ -45,7 +46,7 @@ class RewardMachine:
 
     def get_next_state(self, u1, true_props):
         if self.generate_by_ltl:
-            return self.delta_u[u1][true_props]
+            return self.delta_u[u1].get(true_props, self.u_broken)
         else:
             if u1 < self.u_broken:
                 for u2 in self.delta_u[u1]:
@@ -59,13 +60,13 @@ class RewardMachine:
         The extra reward given by RS is included only during training!
         """
         if self.generate_by_ltl:
-            # reward = 1 if self.state2ltl[u2]=='True' else 0
-            if self.state2ltl[u2]=='True':
-                reward = 1
-            elif self.state2ltl[u2]=='False':
-                reward = -1
-            else:
-                reward = 0
+            reward = 1 if self.state2ltl[u2] == 'True' else 0
+            # if self.state2ltl[u2]=='True':
+            #     reward = 1
+            # elif self.state2ltl[u2]=='False':
+            #     reward = -1
+            # else:
+            #     reward = 0
         else:
             # Getting reward from the RM
             reward = 0  # NOTE: if the agent falls from the reward machine it receives reward of zero
@@ -99,6 +100,8 @@ class RewardMachine:
             this reward machine initialized at u1 is equivalent 
             to the reward machine rm2 initialized at u2
         """
+        if self.generate_by_ltl:
+            return self.state2ltl[u1] == rm2.state2ltl[u2]
         if not self.use_rm_matching:
             return False
         return are_these_machines_equivalent(self, u1, rm2, u2)
@@ -179,16 +182,16 @@ class RewardMachine:
         self.terminal = {0, 1}
         self.U = [0, 1]
         self.u0 = 2  # we let the initial state be the first formula id
+        self.u_broken = 0   # the broken state is 'False'
         # terminal state: 'False' and 'True' do not transit to other state
-        self.delta_u[0] = dict([(p,0) for p in self.label_set])
-        self.delta_u[1] = dict([(p,1) for p in self.label_set])
+        self.delta_u[0] = dict([(p, 0) for p in self.label_set])
+        self.delta_u[1] = dict([(p, 1) for p in self.label_set])
         for formula_text in lines[1:]:
             formula = eval(formula_text)
             # propositions_of_formula = get_propositions(formula)
             # self.label_set |= propositions_of_formula
             new_states = self._expand_rm_by_ltl(formula)
             self.U += new_states
-
 
     def _expand_rm_by_ltl(self, formula):
         new_states = []  # new non-terminal states after expansion
@@ -230,7 +233,8 @@ class RewardMachine:
         self.state2ltl = [k for k in self.ltl2state.keys()]
         return new_states
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     rm = RewardMachine('../../experiments/office/ltl_formulas/formula1.txt',
                        use_rs=False,
                        gamma=1,
