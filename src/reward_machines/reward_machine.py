@@ -46,7 +46,8 @@ class RewardMachine:
 
     def get_next_state(self, u1, true_props):
         if self.generate_by_ltl:
-            return self.delta_u[u1].get(true_props, self.u_broken)
+            # if true_props not in label_set, then do not transit
+            return self.delta_u[u1].get(true_props, u1)
         else:
             if u1 < self.u_broken:
                 for u2 in self.delta_u[u1]:

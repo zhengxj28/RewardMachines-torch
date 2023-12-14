@@ -120,20 +120,19 @@ def get_params_office_world(alg_name, experiment, args):
 
 
 def get_params_water_world(alg_name, experiment, args):
-    step_unit = 1  # 1000
     testing_params = TestingParameters(
         test=True,
-        test_freq=10 * step_unit,
+        test_freq=1,    #10000
         num_steps=600
     )
 
-    if alg_name in ["qrm", "qrm-rs"]:
+    if alg_name == 'qrm':
         learning_params = LearningParameters(
+            total_units=100,
+            step_unit=1,    # 1000
             lr=1e-5,  # 5e-5 seems to be better than 1e-4
             gamma=0.9,
-            max_timesteps_per_task=testing_params.num_steps,
             buffer_size=50000,
-            print_freq=step_unit,
             train_freq=1,
             batch_size=32,
             target_network_update_freq=100,  # obs: 500 makes learning more stable, but slower
@@ -145,35 +144,36 @@ def get_params_water_world(alg_name, experiment, args):
             num_hidden_layers=6,
             num_neurons=64
         )
-    if alg_name in ["pporm", "pporm-rs"]:
-        learning_params = LearningParameters(
-            lr=1e-5,  # 5e-5 seems to be better than 1e-4
-            gamma=0.9,
-            max_timesteps_per_task=testing_params.num_steps,
-            buffer_size=testing_params.num_steps,
-            batch_size=64,  # mini batch size
-            print_freq=step_unit,
-            clip_rate=0.1,
-            lam=0.8,
-            n_updates=10,
-            policy_loss_coef=1.0,
-            value_loss_coef=1.0,
-            entropy_loss_coef=0.01,
-            learning_starts=1,
-            tabular_case=False,
-            use_random_maps=False,
-            num_hidden_layers=6,
-            num_neurons=64
-        )
+    # if alg_name in ["pporm", "pporm-rs"]:
+    #     learning_params = LearningParameters(
+    #         lr=1e-5,  # 5e-5 seems to be better than 1e-4
+    #         gamma=0.9,
+    #         max_timesteps_per_task=testing_params.num_steps,
+    #         buffer_size=testing_params.num_steps,
+    #         batch_size=64,  # mini batch size
+    #         print_freq=step_unit,
+    #         clip_rate=0.1,
+    #         lam=0.8,
+    #         n_updates=10,
+    #         policy_loss_coef=1.0,
+    #         value_loss_coef=1.0,
+    #         entropy_loss_coef=0.01,
+    #         learning_starts=1,
+    #         tabular_case=False,
+    #         use_random_maps=False,
+    #         num_hidden_layers=6,
+    #         num_neurons=64
+    #     )
 
-    # Setting the experiment
-    tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
-
-    # Setting the curriculum learner
-    curriculum = MultiTaskCurriculumLearner(tester.get_tasks())
-    curriculum.num_steps = 300
-    curriculum.total_steps = 2000 * step_unit
-    curriculum.min_steps = 1
+    tester, curriculum = get_tester_curriculum(learning_params, testing_params, experiment, args)
+    # # Setting the experiment
+    # tester = Tester(learning_params, testing_params, experiment, use_rs, use_wandb)
+    #
+    # # Setting the curriculum learner
+    # curriculum = MultiTaskCurriculumLearner(tester.get_tasks())
+    # curriculum.num_steps = 300
+    # curriculum.total_steps = 2000 * step_unit
+    # curriculum.min_steps = 1
 
     print("Water World ----------")
     # print("lr:", learning_params.lr)

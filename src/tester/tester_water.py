@@ -18,7 +18,8 @@ class TesterWaterWorld:
             self.use_velocities = eval(lines[5])
             self.ball_disappear = eval(lines[6])
             self.maps = eval(lines[7])
-            self.reward_machine_files = eval(lines[8])
+            self.rm_files = eval(lines[8])
+            self.ltl_files = eval(lines[9])
             print("-------------")
             print("max_x", self.max_x)
             print("max_y", self.max_y)
@@ -30,9 +31,9 @@ class TesterWaterWorld:
         else:
             self.experiment = data["experiment"]
             self.maps = data["maps"]
-            self.reward_machine_files = data["reward_machine_files"]
+            self.rm_files = data["reward_machine_files"]
         self.use_random_maps = use_random_maps
-        self.tasks = [(t, m) for t in self.reward_machine_files for m in self.maps]
+        self.tasks = [(t, m) for t in self.rm_files for m in self.maps]
         self.current_map = 0
         # NOTE: Update the optimal value per task when you know it...
         self.optimal = {}
@@ -43,11 +44,11 @@ class TesterWaterWorld:
         d = {}
         d["experiment"] = self.experiment
         d["maps"] = self.maps
-        d["reward_machine_files"] = self.reward_machine_files
+        d["reward_machine_files"] = self.rm_files
         return d
 
     def get_reward_machine_files(self):
-        return self.reward_machine_files
+        return self.rm_files
 
     def get_task_specifications(self):
         return self.tasks
