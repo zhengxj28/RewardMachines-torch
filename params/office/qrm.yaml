@@ -1,5 +1,5 @@
 testing_params:
-  test: True
+  test: true
   test_freq: 500
   num_steps: 1000
 

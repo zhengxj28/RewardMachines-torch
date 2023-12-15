@@ -34,6 +34,7 @@ class Tester:
             self.world = TesterWaterWorld(experiment_file, learning_params.use_random_maps)
 
         # Creating the reward machines for each task
+        # Although some algorithms do not use RM, we create RMs to generate env reward.
         self.reward_machines = []
         # a task is a file path of rm or ltl_formula (load_rm_mode=='files' or 'formulas')
         self.tasks = []
@@ -48,9 +49,13 @@ class Tester:
 
         elif args.load_rm_mode == 'formulas':
             self.tasks = self.world.ltl_files
+            self.ltl_formulas = []
             for i, ltl_file in enumerate(self.tasks):
                 self.task2rm_id[ltl_file] = i
                 ltl_file = os.path.join(os.path.dirname(__file__), "..", ltl_file)
+                with open(ltl_file) as f:
+                    lines = [l.rstrip() for l in f]
+                    self.ltl_formulas.append(eval(lines[1]))
                 self.reward_machines.append(RewardMachine(ltl_file, args.use_rs, learning_params.gamma, True))
         else:
             raise NotImplementedError('Unexpected load_rm_mode:' + args.load_rm_mode)

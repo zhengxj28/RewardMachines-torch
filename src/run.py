@@ -3,6 +3,7 @@ import random
 import wandb
 import torch
 import numpy as np
+import yaml
 
 file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
@@ -11,6 +12,7 @@ from src.algos.qrm import QRMAlgo
 from src.algos.ltlenc_dqn import LTLEncDQNAlgo
 from src.algos.pporm import run_pporm_experiments
 from src.tester.saver import Saver
+
 
 # The pickle library is asking me to have access to Ball and BallAgent from the main...
 # Do not delete this line
@@ -74,6 +76,9 @@ def get_wandb_config(alg_name, args, learning_params):
     return config
 
 def get_tester_curriculum(world, experiment, args):
+    from src.tester.tester import Tester
+    from src.tester.params import Params
+    from src.common.curriculum import MultiTaskCurriculumLearner
     project_path = os.path.join(os.path.dirname(__file__), "..")
     config_path = os.path.join(project_path, "params", world, args.algorithm+".yaml")
     with open(config_path, 'r') as file:

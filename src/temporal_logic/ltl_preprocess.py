@@ -2,12 +2,11 @@ import torch
 import numpy as np
 import re
 
-sltl_tokens = ['and', 'or', 'not', 'next', 'until', 'eventually', 'then', 'True', 'False']
+sltl_tokens = ['and', 'or', 'not', 'next', 'until', 'eventually', 'then', 'true', 'false']
 
-def preprocess(formulas, vocab, device=None):
+def preprocess(formulas, vocab, max_text_len, device=None):
     # convert formulas (list[str]) into Tensor
     var_indexed_texts = []
-    max_text_len = 25
 
     for formula in formulas:
         formula = str(formula) # transforming the ltl formula into a string

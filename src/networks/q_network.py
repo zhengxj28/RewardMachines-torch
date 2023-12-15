@@ -39,17 +39,17 @@ class DeepQNet(nn.Module):
         return x
 
 class LTLQNet(nn.Module):
-    def __init__(self, num_obs, num_actions, learning_params, transformer_params):
+    def __init__(self, num_obs, num_actions, model_params):
         super().__init__()
         self.ltl_encoder = TransformerSyn(obs_size=num_obs,
-                                          model_params=transformer_params)
-        enc_dim = learning_params.d_out
+                                          model_params=model_params)
+        enc_dim = model_params.d_out
         self.q_net = DeepQNet(input_dim=num_obs+enc_dim,
                               output_dim=num_actions,
-                              model_params=learning_params)
+                              model_params=model_params)
 
     def forward(self, obs, ltl_seq):
         ltl_enc = self.ltl_encoder(ltl_seq)
-        dqn_input = torch.cat([ltl_enc, obs])
+        dqn_input = torch.cat([ltl_enc, obs], dim=1)
         q_values = self.q_net(dqn_input)
         return q_values

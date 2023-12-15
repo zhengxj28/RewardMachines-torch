@@ -1,11 +1,11 @@
 testing_params:
   test: true
-  test_freq: 1  #10000
+  test_freq: 10000  #10000
   num_steps: 600
 
 learning_params:
   total_units: 100
-  step_unit: 1  # 1000
+  step_unit: 1000  # 1000
   lr: 0.00001  # 5e-5 seems to be better than 1e-4
   epsilon: 0.1
   gamma: 0.9
@@ -18,9 +18,22 @@ learning_params:
   use_random_maps: false
   use_double_dqn: true
   prioritized_replay: true
+  max_ltl_len: 25
 
 model_params:
   tabular_case: false
   num_hidden_layers: 6
   num_neurons: 64
+
+  # transformer params
+  d_model: 64
+  nhead: 8
+  num_encoder_layers: 4
+  pool: 'mean'
+  dim_feedforward: 256
+  dropout: 0.0
+  d_out: 16
+  layer_norm_eps: 0.00001
+  TFixup: true
+
 
