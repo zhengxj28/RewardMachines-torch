@@ -5,13 +5,17 @@ from src.reward_machines.reward_machine import RewardMachine
 from src.tester.test_utils import read_json, get_precentiles_str, get_precentiles_in_seconds, reward2steps
 import numpy as np
 import time, os
-import wandb
-
+from src.tester.params import Params
 
 class Tester:
-    def __init__(self, learning_params, testing_params, experiment_file, args):
+    def __init__(self, params, experiment_file, args):
+        self.params = params
+        learning_params = Params(params.get('learning_params', dict()))
+        testing_params = Params(params.get('testing_params', dict()))
+        model_params = Params(params.get('model_params', dict()))
         self.learning_params = learning_params
         self.testing_params = testing_params
+        self.model_params = model_params
         # Reading the file
         self.experiment = experiment_file
         self.use_wandb = args.use_wandb

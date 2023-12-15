@@ -2,12 +2,12 @@ import random
 import time
 import wandb
 
-from src.algos.base_algo import BaseAlgo
+from src.algos.nmdp_algo import NonMDPAlgo
 from src.agents.qrm_agent import QRMAgent
 from src.worlds.game import Game
 
 
-class QRMAlgo(BaseAlgo):
+class QRMAlgo(NonMDPAlgo):
     def __init__(self, tester, curriculum, show_print, use_cuda):
         super().__init__(tester, curriculum)
 
@@ -20,22 +20,15 @@ class QRMAlgo(BaseAlgo):
         num_actions = task_aux.num_actions
 
         learning_params = tester.learning_params
-        self.agent = QRMAgent(num_features, num_actions, learning_params,
+        model_params = tester.model_params
+        self.agent = QRMAgent(num_features, num_actions,
+                              learning_params,
+                              model_params,
                               tester.get_reward_machines(),
                               tester.task2rm_id,
                               use_cuda)
 
-    def create_env(self, task):
-        tester = self.tester
-        reward_machines = tester.get_reward_machines()
-        task_rm_id = tester.get_reward_machine_id_from_file(task)
-        task_params = tester.get_task_params(task)
 
-        rm = reward_machines[task_rm_id]
-        env = Game(task_params, rm)
-
-        # self.agent.set_rm(task_rm_id)
-        return env
 
     def train_episode(self, task):
         """
@@ -102,48 +95,4 @@ class QRMAlgo(BaseAlgo):
 
         # if show_print: print("Done! Total reward:", training_reward)
 
-    def evaluate(self, step):
-        tester = self.tester
-        t_init = time.time()
-        reward_machines = tester.get_reward_machines()
-        rewards_of_each_task = []
-        # evaluate performance on all the tasks
-        # for task_specification in tester.get_task_specifications():
-        #     task_str = str(task_specification)
-        #     task_params = tester.get_task_params(task_specification)
-        #     task_rm_id = tester.get_reward_machine_id(task_specification)
-        #     rm = reward_machines[task_rm_id]
-
-        for rm_file in tester.get_rm_files():
-            reward = self.evaluate_episode(rm_file)
-
-            # if step not in tester.rewards[task_str]:
-            #     tester.rewards[task_str][step] = []
-            # if len(tester.steps) == 0 or tester.steps[-1] < step:
-            #     tester.steps.append(step)
-            # tester.rewards[task_str][step].append(reward)
-            rewards_of_each_task.append(reward)
-
-        total_reward = sum(rewards_of_each_task)
-        tester.total_rewards.append(total_reward)
-
-        cur_time = time.time()
-        training_time = (cur_time - tester.last_test_time) / 60
-        print("Training time: %0.2f minutes." % (training_time))
-        tester.last_test_time = cur_time
-
-        print("Steps: %d\tTesting: %0.1f" % (step, cur_time - t_init),
-              "seconds\tTotal Reward: %0.1f" % total_reward)
-        print("\t".join(["%0.1f" % (r) for r in rewards_of_each_task]))
-
-        log_reward = {"total": sum(rewards_of_each_task)}
-        for i in range(len(rewards_of_each_task)):
-            log_reward["task%d" % i] = rewards_of_each_task[i]
-
-        for key, value in self.loss_info.items():
-            print("%s: %.4f" % (key, value), end='\t')
-        print('\n')
-
-        if tester.use_wandb:
-            wandb.log({"reward": log_reward, "loss": self.loss_info, "training_time": training_time})
 

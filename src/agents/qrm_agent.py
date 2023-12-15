@@ -11,20 +11,21 @@ class QRMAgent(BaseRLAgent, RMAgent):
     This class includes a list of policies (a.k.a neural nets) for decomposing reward machines
     """
 
-    def __init__(self, num_features, num_actions, learning_params, reward_machines, task2rm_id, use_cuda):
+    def __init__(self, num_features, num_actions, learning_params, model_params, reward_machines, task2rm_id, use_cuda):
         RMAgent.__init__(self, reward_machines, task2rm_id)
 
         self.num_features = num_features
         self.num_actions = num_actions
         self.learning_params = learning_params
+        self.model_params = model_params
 
         device = torch.device('cuda' if torch.cuda.is_available() and use_cuda else 'cpu')
         self.device = device
 
         num_policies = self.num_policies  # already defined in RMAgent
 
-        self.qrm_net = QRMNet(num_features, num_actions, num_policies, learning_params).to(device)
-        self.tar_qrm_net = QRMNet(num_features, num_actions, num_policies, learning_params).to(device)
+        self.qrm_net = QRMNet(num_features, num_actions, num_policies, model_params).to(device)
+        self.tar_qrm_net = QRMNet(num_features, num_actions, num_policies, model_params).to(device)
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
 
         if learning_params.tabular_case:

@@ -8,8 +8,8 @@ file_path = os.path.dirname(os.path.abspath(__file__))  # location of current fi
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
 
 from src.algos.qrm import QRMAlgo
+from src.algos.ltlenc_dqn import LTLEncDQNAlgo
 from src.algos.pporm import run_pporm_experiments
-from get_params import *
 from src.tester.saver import Saver
 
 # The pickle library is asking me to have access to Ball and BallAgent from the main...
@@ -35,13 +35,13 @@ def run_experiment(args, tester, curriculum):
     #     run_hrl_experiments(alg_name, tester, curriculum, num_times, show_print, use_rm = True)
 
     # QRM
-    if alg_name in ["qrm", "qrm-rs"]:
+    if alg_name == "qrm":
         algo = QRMAlgo(tester, curriculum, show_print, use_cuda)
-        # run_qrm_experiments(tester, curriculum, show_print, use_cuda)
+    elif alg_name == "ltlenc_dqn":
+        algo = LTLEncDQNAlgo(tester, curriculum, show_print, use_cuda)
+    else:
+        raise NotImplementedError("Algorithm:" +alg_name)
 
-    # PPORM
-    # if alg_name in ["pporm", "pporm-rs"]:
-    #     run_pporm_experiments(tester, curriculum, show_print, use_cuda)
     algo.run_experiments()
 
 
@@ -53,6 +53,7 @@ def get_wandb_config(alg_name, args, learning_params):
         learning_params.entropy_loss_coef = args.e_coef
         learning_params.n_updates = args.n_updates
 
+    config = {}
     if alg_name in ["qrm", "qrm-rs"]:
         config = {"seed": s,
                   "lr": learning_params.lr,
@@ -69,8 +70,22 @@ def get_wandb_config(alg_name, args, learning_params):
                   "value_loss_coef": learning_params.value_loss_coef,
                   "entropy_loss_coef": learning_params.entropy_loss_coef,
                   }
+    # TODO: wandb config for ltlenc algo
     return config
 
+def get_tester_curriculum(world, experiment, args):
+    project_path = os.path.join(os.path.dirname(__file__), "..")
+    config_path = os.path.join(project_path, "params", world, args.algorithm+".yaml")
+    with open(config_path, 'r') as file:
+        params = yaml.safe_load(file)
+
+    tester = Tester(params, experiment, args)
+
+    # Setting the curriculum learner
+    curriculum = MultiTaskCurriculumLearner(tester.tasks)
+    learning_params = Params(params['learning_params'])
+    curriculum.total_steps = learning_params.step_unit*learning_params.total_units
+    return tester, curriculum
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -83,7 +98,7 @@ if __name__ == "__main__":
     # EXAMPLE: python run.py --algorithm "qrm" --world "office" --seeds 0 1 2 3 4 --use_wandb
 
     # Getting params
-    algorithms = ["qrm", "qrm-rs", "pporm", "pporm-rs"]
+    algorithms = ["qrm", "pporm", "ltlenc_dqn"]
     worlds = ["office", "craft", "water"]
 
     parser = argparse.ArgumentParser(prog="run_experiments",
@@ -130,20 +145,17 @@ if __name__ == "__main__":
     filename = "office.txt" if world == "office" else "%s_%d.txt" % (world, map_id)
     project_path = os.path.dirname(__file__)
     experiment = os.path.join(project_path, "..", "experiments", world, "tests", filename)
-    world += "world"
-
-    # use_rs = alg_name.endswith("-rs")
 
     for s in args.seeds:
         print("*" * 10, "seed:", s, "*" * 10)
 
-        # get default params for each env, defined in get_params.py
-        if world == 'officeworld':
-            tester, curriculum = get_params_office_world(alg_name, experiment, args)
-        if world == 'craftworld':
-            tester, curriculum = get_params_craft_world(alg_name, experiment, args)
-        if world == 'waterworld':
-            tester, curriculum = get_params_water_world(alg_name, experiment, args)
+        tester, curriculum = get_tester_curriculum(world, experiment, args)
+        # if world == 'officeworld':
+        #     tester, curriculum = get_params_office_world(alg_name, experiment, args)
+        # if world == 'craftworld':
+        #     tester, curriculum = get_params_craft_world(alg_name, experiment, args)
+        # if world == 'waterworld':
+        #     tester, curriculum = get_params_water_world(alg_name, experiment, args)
 
         learning_params = tester.learning_params
         # saver = Saver(alg_name, tester, curriculum)
