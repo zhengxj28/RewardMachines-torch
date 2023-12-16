@@ -9,32 +9,28 @@ import time, random
 import numpy as np
 from src.networks.ac_network import ActorRMNet, CriticRMNet
 from src.agents.rm_agent import RMAgent
+from src.agents.base_rl_agent import BaseRLAgent
 
 
-class PPORMAgent(RMAgent):
-    """
-    This class includes a list of policies (a.k.a neural nets) for decomposing reward machines
-    """
-
-    def __init__(self, num_features, num_actions, learning_params, reward_machines, curriculum, use_cuda):
-        super().__init__(reward_machines)
+class PPORMAgent(BaseRLAgent, RMAgent):
+    def __init__(self, num_features, num_actions, learning_params, model_params, reward_machines, task2rm_id, use_cuda):
+        RMAgent.__init__(self, reward_machines, task2rm_id)
+        BaseRLAgent.__init__(self, use_cuda)
 
         self.num_features = num_features
         self.num_actions = num_actions
         self.learning_params = learning_params
+        self.model_params = model_params
 
-        self.curriculum = curriculum
-
-        device = torch.device('cuda' if torch.cuda.is_available() and use_cuda else 'cpu')
-        self.device = device
+        device = self.device
 
         num_policies = self.num_policies  # already defined in RMAgent
-
-        self.actor_rm_net = ActorRMNet(num_features, num_actions, num_policies, learning_params).to(device)
-        self.critic_rm_net = CriticRMNet(num_features, num_policies, learning_params).to(device)
+        self.actor_rm_net = ActorRMNet(num_features, num_actions, num_policies, model_params).to(device)
+        self.critic_rm_net = CriticRMNet(num_features, num_policies, model_params).to(device)
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
 
         if learning_params.tabular_case:
+            # TODO: verify ppo algorithm in tabular case
             self.actor_optim = optim.Adam(self.actor_rm_net.parameters(), lr=learning_params.lr)
             self.critic_optim = optim.SGD(self.critic_rm_net.parameters(), lr=learning_params.lr)
         else:
@@ -94,7 +90,7 @@ class PPORMAgent(RMAgent):
                 v1 = self.critic_rm_net(s1[idx]).squeeze(2)
                 value_loss = torch.Tensor([0.0]).to(self.device)
                 for u in range(self.num_policies):
-                    value_loss += 0.5*nn.MSELoss()(v1[:, u], v_tar[idx, u])
+                    value_loss += 0.5 * nn.MSELoss()(v1[:, u], v_tar[idx, u])
 
                 loss = p_coef * policy_loss + v_coef * value_loss - e_coef * total_entropy
                 self.actor_optim.zero_grad()
@@ -104,9 +100,9 @@ class PPORMAgent(RMAgent):
                 self.critic_optim.step()
 
                 # record most recent loss
-                loss_dict["policy_loss"] = policy_loss.cpu().item()/self.num_policies
-                loss_dict["value_loss"] = value_loss.cpu().item()/self.num_policies
-                loss_dict["entropy"] = total_entropy.cpu().item()/self.num_policies
+                loss_dict["policy_loss"] = policy_loss.cpu().item() / self.num_policies
+                loss_dict["value_loss"] = value_loss.cpu().item() / self.num_policies
+                loss_dict["entropy"] = total_entropy.cpu().item() / self.num_policies
 
         return loss_dict
 
@@ -124,27 +120,33 @@ class PPORMAgent(RMAgent):
             log_prob = torch.log(prob_all.squeeze(0)[:, a])
             return a.cpu().item(), log_prob
 
-    def update(self, s1, a, s2, events, log_prob, done):
-        # Getting rewards and next states for each reward machine to learn
-        rewards, next_policies = [], []
-        reward_machines = self.reward_machines
-        for j in range(len(reward_machines)):
-            j_rewards, j_next_states = reward_machines[j].get_rewards_and_next_states(s1, a, s2, events)
-            rewards.append(j_rewards)
-            next_policies.append(j_next_states)
-        # Mapping rewards and next states to specific policies in the policy bank
-        rewards = self.map_rewards(rewards)
-        next_policies = self.map_next_policies(next_policies)
+    def update(self, s1, a, s2, events, log_prob, done, eval_mode=False):
+        if not eval_mode:
+            # Getting rewards and next states for each reward machine to learn
+            rewards, next_policies = [], []
+            reward_machines = self.reward_machines
+            for j in range(len(reward_machines)):
+                j_rewards, j_next_states = reward_machines[j].get_rewards_and_next_states(s1, a, s2, events)
+                rewards.append(j_rewards)
+                next_policies.append(j_next_states)
+            # Mapping rewards and next states to specific policies in the policy bank
+            rewards = self.map_rewards(rewards)
+            next_policies = self.map_next_policies(next_policies)
+            # Adding this experience to the experience replay buffer
+            self.buffer.add_data(s1, a, s2, rewards, next_policies, log_prob, done)
 
         # update current rm state
-        self.update_rm_state(events)
-        # Adding this experience to the experience replay buffer
-        self.buffer.add_data(s1, a, s2, rewards, next_policies, log_prob, done)
+        self.update_rm_state(events, eval_mode)
+
+    def reset_status(self, task, eval_mode=False):
+        rm_id = self.task2rm_id[task]
+        self.set_rm(rm_id, eval_mode)
 
 
 class ReplayBuffer(object):
     def __init__(self, num_features, num_actions, num_policies, learning_params, device):
         maxsize = learning_params.buffer_size
+        assert maxsize >= learning_params.step_unit
         self.maxsize = maxsize
         self.device = device
         self.S1 = torch.empty([maxsize, num_features], device=device)

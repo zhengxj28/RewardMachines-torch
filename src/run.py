@@ -30,6 +30,9 @@ def run_experiment(args, tester, curriculum):
     elif alg_name == "ltlenc_dqn":
         from src.algos.ltlenc_dqn import LTLEncDQNAlgo
         algo = LTLEncDQNAlgo(tester, curriculum, show_print, use_cuda)
+    elif alg_name == "pporm":
+        from src.algos.pporm import PPORMAlgo
+        algo = PPORMAlgo(tester, curriculum, show_print, use_cuda)
     else:
         raise NotImplementedError("Algorithm:" + alg_name)
 
@@ -65,13 +68,12 @@ if __name__ == "__main__":
     # EXAMPLE: python run.py --algorithm "qrm" --world "office" --seeds 0 1 2 3 4 --use_wandb
 
     # Getting params
-    algorithms = ["qrm", "pporm", "dqn", "ltlenc_dqn"]
     worlds = ["office", "craft", "water"]
 
     parser = argparse.ArgumentParser(prog="run_experiments",
                                      description='Runs a multi-task RL experiment over a particular environment.')
     parser.add_argument('--algorithm', default='qrm', type=str,
-                        help='This parameter indicated which RL algorithm to use. The options are: ' + str(algorithms))
+                        help='This parameter indicated which RL algorithm to use.')
     parser.add_argument('--world', default='office', type=str,
                         help='This parameter indicated which world to solve. The options are: ' + str(worlds))
     parser.add_argument('--map', default=0, type=int,
@@ -99,8 +101,6 @@ if __name__ == "__main__":
     parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
 
     args = parser.parse_args()
-    if args.algorithm not in algorithms:
-        raise NotImplementedError("Algorithm " + str(args.algorithm) + " hasn't been implemented yet")
     if args.world not in worlds: raise NotImplementedError("World " + str(args.world) + " hasn't been defined yet")
     if not (0 <= args.map <= 10): raise NotImplementedError("The map must be a number between 0 and 10")
 

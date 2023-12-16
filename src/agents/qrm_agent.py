@@ -52,7 +52,7 @@ class QRMAgent(BaseRLAgent, RMAgent):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        return {"value_loss": loss.cpu().item()}
+        return {"value_loss": loss.cpu().item()/self.num_policies}
 
     def get_action(self, s, eval_mode=False):
         device = self.device

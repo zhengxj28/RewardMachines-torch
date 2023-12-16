@@ -4,15 +4,15 @@ import torch.nn.functional as F
 
 
 class ActorRMNet(nn.Module):
-    def __init__(self, num_input, num_output, num_policies, learning_params):
+    def __init__(self, num_input, num_output, num_policies, model_params):
         super().__init__()
         self.actor_rm_net = nn.ModuleList()
         self.num_policies = num_policies
         for i in range(num_policies):
-            if learning_params.tabular_case:
+            if model_params.tabular_case:
                 actor_net = TabularActorNet(num_input, num_output)
             else:
-                actor_net = ActorNet(num_input, num_output, learning_params)
+                actor_net = ActorNet(num_input, num_output, model_params)
             self.actor_rm_net.append(actor_net)
 
     def forward(self, state):
@@ -25,15 +25,15 @@ class ActorRMNet(nn.Module):
         return probs
 
 class CriticRMNet(nn.Module):
-    def __init__(self, num_input, num_policies, learning_params):
+    def __init__(self, num_input, num_policies, model_params):
         super().__init__()
         self.critic_rm_net = nn.ModuleList()
         self.num_policies = num_policies
         for i in range(num_policies):
-            if learning_params.tabular_case:
+            if model_params.tabular_case:
                 critic_net = TabularCriticNet(num_input)
             else:
-                critic_net = CriticNet(num_input, learning_params)
+                critic_net = CriticNet(num_input, model_params)
             self.critic_rm_net.append(critic_net)
 
     def forward(self, state):
@@ -66,11 +66,11 @@ class TabularCriticNet(nn.Module):
         return self.layer(x)
 
 class ActorNet(nn.Module):
-    def __init__(self, num_input, num_output, learning_params):
+    def __init__(self, num_input, num_output, model_params):
         super().__init__()
         self.layers = nn.ModuleList()
-        num_neurons = learning_params.num_neurons
-        self.num_hidden_layers = learning_params.num_hidden_layers
+        num_neurons = model_params.num_neurons
+        self.num_hidden_layers = model_params.num_hidden_layers
         for i in range(self.num_hidden_layers):
             if i == 0:
                 self.layers.append(nn.Linear(num_input, num_neurons))
@@ -93,11 +93,11 @@ class ActorNet(nn.Module):
 
 
 class CriticNet(nn.Module):
-    def __init__(self, num_input, learning_params):
+    def __init__(self, num_input, model_params):
         super().__init__()
         self.layers = nn.ModuleList()
-        num_neurons = learning_params.num_neurons
-        self.num_hidden_layers = learning_params.num_hidden_layers
+        num_neurons = model_params.num_neurons
+        self.num_hidden_layers = model_params.num_hidden_layers
         for i in range(self.num_hidden_layers):
             if i == 0:
                 self.layers.append(nn.Linear(num_input, num_neurons))
