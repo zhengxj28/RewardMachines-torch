@@ -21,7 +21,6 @@ class LTLEncDQNAlgo(NonMDPAlgo):
 
         learning_params = tester.learning_params
         model_params = tester.model_params
-        # TODO: get model_params, ltl_formulas from tester
         self.agent = LTLEncDQNAgent(num_features, num_actions,
                                     learning_params,
                                     model_params,

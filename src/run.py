@@ -47,35 +47,6 @@ def run_experiment(args, tester, curriculum):
     algo.run_experiments()
 
 
-def get_wandb_config(alg_name, args, learning_params):
-    if args.set_params:
-        learning_params.lr = args.lr
-        learning_params.buffer_size = args.buffer_size
-        learning_params.batch_size = args.batch_size
-        learning_params.entropy_loss_coef = args.e_coef
-        learning_params.n_updates = args.n_updates
-
-    config = {}
-    if alg_name in ["qrm", "qrm-rs"]:
-        config = {"seed": seed,
-                  "lr": learning_params.lr,
-                  "batch_size": learning_params.batch_size,
-                  "target_network_update_freq": learning_params.target_network_update_freq
-                  }
-    if alg_name in ["pporm", "pporm-rs"]:
-        config = {"seed": seed,
-                  "lr": learning_params.lr,
-                  "buffer_size": learning_params.buffer_size,
-                  "batch_size": learning_params.batch_size,
-                  "n_updates": learning_params.n_updates,
-                  "policy_loss_coef": learning_params.policy_loss_coef,
-                  "value_loss_coef": learning_params.value_loss_coef,
-                  "entropy_loss_coef": learning_params.entropy_loss_coef,
-                  }
-    # TODO: wandb config for ltlenc algo
-    return config
-
-
 def get_tester_curriculum(world, experiment, args):
     from src.tester.tester import Tester
     from src.tester.params import Params

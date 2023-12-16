@@ -14,7 +14,7 @@ class LTLEncDQNAgent(BaseRLAgent):
     """
 
     def __init__(self, num_features, num_actions, learning_params, model_params, ltl_formulas, task2rm_id, use_cuda):
-        super().__init__()
+        super().__init__(use_cuda)
         self.num_features = num_features
         self.num_actions = num_actions
         self.learning_params = learning_params
@@ -41,9 +41,7 @@ class LTLEncDQNAgent(BaseRLAgent):
         self.cur_ltl = None  # current ltl formula for training
         self.cur_ltl_eval = None  # current ltl formula for evaluating
 
-        device = torch.device('cuda' if torch.cuda.is_available() and use_cuda else 'cpu')
-        self.device = device
-
+        device = self.device
         self.ltl_q_net = LTLQNet(num_features, num_actions, model_params).to(device)
         self.tar_ltl_q_net = LTLQNet(num_features, num_actions, model_params).to(device)
         self.buffer = ReplayBuffer(num_features, num_actions, learning_params, device)
