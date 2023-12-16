@@ -19,7 +19,6 @@ class NonMDPAlgo(BaseAlgo):
         rm = reward_machines[task_rm_id]
         env = Game(task_params, rm)
 
-        # self.agent.set_rm(task_rm_id)
         return env
 
     def train_episode(self, *args):
@@ -30,21 +29,9 @@ class NonMDPAlgo(BaseAlgo):
         t_init = time.time()
         reward_machines = tester.get_reward_machines()
         rewards_of_each_task = []
-        # evaluate performance on all the tasks
-        # for task_specification in tester.get_task_specifications():
-        #     task_str = str(task_specification)
-        #     task_params = tester.get_task_params(task_specification)
-        #     task_rm_id = tester.get_reward_machine_id(task_specification)
-        #     rm = reward_machines[task_rm_id]
 
         for rm_file in tester.get_rm_files():
             reward = self.evaluate_episode(rm_file)
-
-            # if step not in tester.rewards[task_str]:
-            #     tester.rewards[task_str][step] = []
-            # if len(tester.steps) == 0 or tester.steps[-1] < step:
-            #     tester.steps.append(step)
-            # tester.rewards[task_str][step].append(reward)
             rewards_of_each_task.append(reward)
 
         total_reward = sum(rewards_of_each_task)

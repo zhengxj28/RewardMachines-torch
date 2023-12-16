@@ -76,7 +76,7 @@ class LTLEncDQNAgent(BaseRLAgent):
 
     def get_action(self, s, eval_mode=False):
         device = self.device
-        if random.random() < self.learning_params.epsilon and not eval_mode:
+        if not eval_mode and random.random() < self.learning_params.epsilon:
             a = random.choice(range(self.num_actions))
         else:
             s = torch.Tensor(s).view(1, -1).to(device)

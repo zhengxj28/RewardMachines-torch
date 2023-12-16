@@ -3,11 +3,11 @@ import time
 import wandb
 
 from src.algos.nmdp_algo import NonMDPAlgo
-from src.agents.ltlenc_dqn_agent import LTLEncDQNAgent
+from src.agents.dqn_agent import DQNAgent
 from src.worlds.game import Game
 
 
-class LTLEncDQNAlgo(NonMDPAlgo):
+class DQNAlgo(NonMDPAlgo):
     def __init__(self, tester, curriculum, show_print, use_cuda):
         super().__init__(tester, curriculum)
 
@@ -21,12 +21,10 @@ class LTLEncDQNAlgo(NonMDPAlgo):
 
         learning_params = tester.learning_params
         model_params = tester.model_params
-        self.agent = LTLEncDQNAgent(num_features, num_actions,
-                                    learning_params,
-                                    model_params,
-                                    tester.ltl_formulas,
-                                    tester.task2rm_id,
-                                    use_cuda)
+        self.agent = DQNAgent(num_features, num_actions,
+                              learning_params,
+                              model_params,
+                              use_cuda)
 
     def train_episode(self, task):
         """
@@ -54,9 +52,9 @@ class LTLEncDQNAlgo(NonMDPAlgo):
             curriculum.add_step()
             a = agent.get_action(s1)
             # do not use reward from env to learn
-            s2, env_reward, done, events = env.step(a)
+            s2, env_reward, done, _ = env.step(a)
 
-            agent.update(s1, a, s2, events, done)
+            agent.update(s1, a, s2, env_reward, done)
 
             # Learning
             cur_step = curriculum.get_current_step()
@@ -69,8 +67,6 @@ class LTLEncDQNAlgo(NonMDPAlgo):
 
             # Printing
             training_reward += env_reward
-            # if show_print and (t + 1) % learning_params.print_freq == 0:
-            #     print("Step:", t + 1, "\tTotal reward:", training_reward)
 
             # Testing
             if testing_params.test and cur_step % testing_params.test_freq == 0:
@@ -81,6 +77,3 @@ class LTLEncDQNAlgo(NonMDPAlgo):
                 break
             # Moving to the next state
             s1 = s2
-
-        # if show_print: print("Done! Total reward:", training_reward)
-

@@ -9,9 +9,6 @@ import copy
 file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
 
-from src.algos.qrm import QRMAlgo
-from src.algos.ltlenc_dqn import LTLEncDQNAlgo
-from src.algos.pporm import run_pporm_experiments
 from src.tester.saver import Saver
 
 # The pickle library is asking me to have access to Ball and BallAgent from the main...
@@ -24,22 +21,14 @@ def run_experiment(args, tester, curriculum):
     show_print = False
     use_cuda = args.use_cuda
 
-    # # Baseline 1 (standard DQN with Michael Littman's approach)
-    # if alg_name == "dqn":
-    #     run_dqn_experiments(alg_name, tester, curriculum, num_times, show_print)
-
-    # # Baseline 2 (Hierarchical RL)
-    # if alg_name == "hrl":
-    #     run_hrl_experiments(alg_name, tester, curriculum, num_times, show_print, use_rm = False)
-
-    # # Baseline 3 (Hierarchical RL with DFA constraints)
-    # if alg_name == "hrl-rm":
-    #     run_hrl_experiments(alg_name, tester, curriculum, num_times, show_print, use_rm = True)
-
-    # QRM
     if alg_name == "qrm":
+        from src.algos.qrm import QRMAlgo
         algo = QRMAlgo(tester, curriculum, show_print, use_cuda)
+    elif alg_name == "dqn":
+        from src.algos.dqn import DQNAlgo
+        algo = DQNAlgo(tester, curriculum, show_print, use_cuda)
     elif alg_name == "ltlenc_dqn":
+        from src.algos.ltlenc_dqn import LTLEncDQNAlgo
         algo = LTLEncDQNAlgo(tester, curriculum, show_print, use_cuda)
     else:
         raise NotImplementedError("Algorithm:" + alg_name)
@@ -76,7 +65,7 @@ if __name__ == "__main__":
     # EXAMPLE: python run.py --algorithm "qrm" --world "office" --seeds 0 1 2 3 4 --use_wandb
 
     # Getting params
-    algorithms = ["qrm", "pporm", "ltlenc_dqn"]
+    algorithms = ["qrm", "pporm", "dqn", "ltlenc_dqn"]
     worlds = ["office", "craft", "water"]
 
     parser = argparse.ArgumentParser(prog="run_experiments",
@@ -110,8 +99,8 @@ if __name__ == "__main__":
     parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
 
     args = parser.parse_args()
-    if args.algorithm not in algorithms: raise NotImplementedError(
-        "Algorithm " + str(args.algorithm) + " hasn't been implemented yet")
+    if args.algorithm not in algorithms:
+        raise NotImplementedError("Algorithm " + str(args.algorithm) + " hasn't been implemented yet")
     if args.world not in worlds: raise NotImplementedError("World " + str(args.world) + " hasn't been defined yet")
     if not (0 <= args.map <= 10): raise NotImplementedError("The map must be a number between 0 and 10")
 
