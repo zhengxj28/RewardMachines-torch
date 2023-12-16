@@ -67,6 +67,8 @@ class LTLEncDQNAgent(BaseRLAgent):
 
         loss = torch.Tensor([0.0]).to(self.device)
 
+        rs = rs.squeeze(1)
+        done = done.squeeze(1)
         loss += 0.5 * nn.MSELoss()(Q, rs + gamma * Q_tar * (1 - done))
 
         self.optimizer.zero_grad()
@@ -81,9 +83,9 @@ class LTLEncDQNAgent(BaseRLAgent):
         else:
             s = torch.Tensor(s).view(1, -1).to(device)
             if eval_mode:
-                ltl_tensor = self.preprocess_ltl(self.cur_ltl_eval)
+                ltl_tensor = self.preprocess_ltl(self.cur_ltl_eval).to(device)
             else:
-                ltl_tensor = self.preprocess_ltl(self.cur_ltl)
+                ltl_tensor = self.preprocess_ltl(self.cur_ltl).to(device)
             with torch.no_grad():
                 q_value = self.ltl_q_net(s, ltl_tensor)
             a = torch.argmax(q_value).cpu().item()

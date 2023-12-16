@@ -4,6 +4,7 @@ import wandb
 import torch
 import numpy as np
 import yaml
+import copy
 
 file_path = os.path.dirname(os.path.abspath(__file__))  # location of current file
 sys.path.append(os.path.join(file_path, ".."))  # abs project path
@@ -12,7 +13,6 @@ from src.algos.qrm import QRMAlgo
 from src.algos.ltlenc_dqn import LTLEncDQNAlgo
 from src.algos.pporm import run_pporm_experiments
 from src.tester.saver import Saver
-
 
 # The pickle library is asking me to have access to Ball and BallAgent from the main...
 # Do not delete this line
@@ -42,7 +42,7 @@ def run_experiment(args, tester, curriculum):
     elif alg_name == "ltlenc_dqn":
         algo = LTLEncDQNAlgo(tester, curriculum, show_print, use_cuda)
     else:
-        raise NotImplementedError("Algorithm:" +alg_name)
+        raise NotImplementedError("Algorithm:" + alg_name)
 
     algo.run_experiments()
 
@@ -57,13 +57,13 @@ def get_wandb_config(alg_name, args, learning_params):
 
     config = {}
     if alg_name in ["qrm", "qrm-rs"]:
-        config = {"seed": s,
+        config = {"seed": seed,
                   "lr": learning_params.lr,
                   "batch_size": learning_params.batch_size,
                   "target_network_update_freq": learning_params.target_network_update_freq
                   }
     if alg_name in ["pporm", "pporm-rs"]:
-        config = {"seed": s,
+        config = {"seed": seed,
                   "lr": learning_params.lr,
                   "buffer_size": learning_params.buffer_size,
                   "batch_size": learning_params.batch_size,
@@ -75,12 +75,13 @@ def get_wandb_config(alg_name, args, learning_params):
     # TODO: wandb config for ltlenc algo
     return config
 
+
 def get_tester_curriculum(world, experiment, args):
     from src.tester.tester import Tester
     from src.tester.params import Params
     from src.common.curriculum import MultiTaskCurriculumLearner
     project_path = os.path.join(os.path.dirname(__file__), "..")
-    config_path = os.path.join(project_path, "params", world, args.algorithm+".yaml")
+    config_path = os.path.join(project_path, "params", world, args.algorithm + ".yaml")
     with open(config_path, 'r') as file:
         params = yaml.safe_load(file)
 
@@ -89,8 +90,9 @@ def get_tester_curriculum(world, experiment, args):
     # Setting the curriculum learner
     curriculum = MultiTaskCurriculumLearner(tester.tasks)
     learning_params = Params(params['learning_params'])
-    curriculum.total_steps = learning_params.step_unit*learning_params.total_units
-    return tester, curriculum
+    curriculum.total_steps = learning_params.step_unit * learning_params.total_units
+    return tester, curriculum, params
+
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -151,24 +153,15 @@ if __name__ == "__main__":
     project_path = os.path.dirname(__file__)
     experiment = os.path.join(project_path, "..", "experiments", world, "tests", filename)
 
-    for s in args.seeds:
-        print("*" * 10, "seed:", s, "*" * 10)
-
-        tester, curriculum = get_tester_curriculum(world, experiment, args)
-        # if world == 'officeworld':
-        #     tester, curriculum = get_params_office_world(alg_name, experiment, args)
-        # if world == 'craftworld':
-        #     tester, curriculum = get_params_craft_world(alg_name, experiment, args)
-        # if world == 'waterworld':
-        #     tester, curriculum = get_params_water_world(alg_name, experiment, args)
-
+    for seed in args.seeds:
+        tester, curriculum, params = get_tester_curriculum(world, experiment, args)
         learning_params = tester.learning_params
         # saver = Saver(alg_name, tester, curriculum)
-        print("alg_name:", alg_name)
         if use_wandb:
-            wandb_config = get_wandb_config(alg_name, args, learning_params)
-            for key, value in wandb_config.items():
-                print("%s:" % key, value)
+            wandb_config = copy.deepcopy(params)
+            wandb_config['use_cuda'] = args.use_cuda
+            wandb_config['seed'] = seed
+            print(wandb_config)
             wandb.init(
                 project="zxj-LLM-Research",
                 notes=args.notes,
@@ -176,8 +169,11 @@ if __name__ == "__main__":
                 name=alg_name,
                 config=wandb_config
             )
+        print("*" * 10, "seed:", seed, "*" * 10)
+        print("alg_name:", alg_name)
+        print(params)
         time_init = time.time()
-        setup_seed(s)
+        setup_seed(seed)
         run_experiment(args, tester, curriculum)
         print("Time:", "%0.2f" % ((time.time() - time_init) / 60), "mins")
         # saver.save_results(filename="seed%d.npy" % s)
