@@ -63,6 +63,23 @@ def get_dfa(ltl_formula):
 
     return initial_state, terminal_states, ltl2state, transitions, propositions
 
+def get_progressed_formulas(ltl_formula):
+    propositions = extract_propositions(ltl_formula)  # type(propostions)=list
+    propositions.sort()
+    label_set = _get_truth_assignments(propositions)  # power set
+
+    progressed_formulas = {'False', 'True', ltl_formula}
+
+    queue = collections.deque([ltl_formula])
+    while queue:
+        formula = queue.popleft()
+        for label in label_set:
+            # progressing formula, add transition
+            f_progressed = progress(formula, label)
+            if f_progressed not in progressed_formulas:  # add index for new state
+                progressed_formulas.add(f_progressed)
+                queue.append(f_progressed)
+    return progressed_formulas
 
 def _get_truth_assignments(propositions_list):
     # computing all possible value assignments for propositions_list
@@ -274,3 +291,4 @@ if __name__ == "__main__":
     res2 = ('until', ('not', 'n'), 'o')
     comp_ltl = _and_ltl(res1, res2)
     progress(comp_ltl, 'c')
+    print()

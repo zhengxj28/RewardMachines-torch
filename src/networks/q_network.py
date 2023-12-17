@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from src.networks.transformer import TransformerSyn
 
+
 class TabularQNet(nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
@@ -32,24 +33,34 @@ class DeepQNet(nn.Module):
             nn.init.constant_(layer.bias, val=0.1)
 
     def forward(self, x):
-        for i in range(self.num_hidden_layers-1):
+        for i in range(self.num_hidden_layers - 1):
             x = self.layers[i](x)
             x = F.relu(x)
-        x = self.layers[self.num_hidden_layers-1](x)
+        x = self.layers[self.num_hidden_layers - 1](x)
         return x
+
 
 class LTLQNet(nn.Module):
     def __init__(self, num_obs, num_actions, model_params):
         super().__init__()
-        self.ltl_encoder = TransformerSyn(obs_size=num_obs,
-                                          model_params=model_params)
+        self.type = model_params.type
+        if model_params.type == "transformer":
+            self.ltl_encoder = TransformerSyn(obs_size=num_obs,
+                                              model_params=model_params)
+        elif model_params.type == "embedding":
+            self.ltl_encoder = nn.Embedding(num_embeddings=model_params.max_num_formulas,
+                                            embedding_dim=model_params.d_out)
+        else:
+            raise NotImplementedError("Unexpected model type:" + model_params.type)
         enc_dim = model_params.d_out
-        self.q_net = DeepQNet(input_dim=num_obs+enc_dim,
+        self.q_net = DeepQNet(input_dim=num_obs + enc_dim,
                               output_dim=num_actions,
                               model_params=model_params)
 
-    def forward(self, obs, ltl_seq):
-        ltl_enc = self.ltl_encoder(ltl_seq)
+    def forward(self, obs, ltl_input):
+        ltl_enc = self.ltl_encoder(ltl_input)
+        if self.type == "embedding":
+            ltl_enc = ltl_enc.squeeze(1)
         dqn_input = torch.cat([ltl_enc, obs], dim=1)
         q_values = self.q_net(dqn_input)
         return q_values

@@ -4,7 +4,7 @@ import torch.optim as optim
 import random
 from src.networks.q_network import LTLQNet
 from src.agents.base_rl_agent import BaseRLAgent
-from src.temporal_logic.ltl_progression import progress, get_propositions
+from src.temporal_logic.ltl_progression import progress, get_propositions, get_progressed_formulas
 from src.temporal_logic.ltl_preprocess import preprocess, sltl_tokens
 
 
@@ -18,6 +18,8 @@ class LTLEncDQNAgent(BaseRLAgent):
         self.num_features = num_features
         self.num_actions = num_actions
         self.learning_params = learning_params
+        self.model_params = model_params
+        # a task is the file path of reward machines or ltl formulas
         # rm_id equals formula_id
         self.task2formula_id = task2rm_id
 
@@ -29,13 +31,22 @@ class LTLEncDQNAgent(BaseRLAgent):
         propositions = list(propositions)
         propositions.sort()
         # self.propositions = set(self.propositions)
-
+        # vocab is a mapping from ltl token (operations and propositions) to id
         self.vocab = dict([(token, i) for i, token in
-                           enumerate(sltl_tokens)])  # mapping from ltl token (operations and propositions) to id
+                           enumerate(sltl_tokens)])
         token_id = len(sltl_tokens)
         for p in propositions:
             self.vocab[p] = token_id
             token_id += 1
+
+        # get a mapping from all possible ltl formulas to id
+        possible_ltls = set()
+        for formula in ltl_formulas:
+            possible_ltls |= get_progressed_formulas(formula)
+        possible_ltls = list(possible_ltls)
+        possible_ltls.sort(key=lambda x: str(x))
+        self.ltl2id = dict([(ltl, i) for i, ltl in enumerate(possible_ltls)])
+        assert len(self.ltl2id)<=model_params.max_num_formulas
 
         # self.init_ltl = None  # initial ltl formula (task specification)
         self.cur_ltl = None  # current ltl formula for training
@@ -44,7 +55,7 @@ class LTLEncDQNAgent(BaseRLAgent):
         device = self.device
         self.ltl_q_net = LTLQNet(num_features, num_actions, model_params).to(device)
         self.tar_ltl_q_net = LTLQNet(num_features, num_actions, model_params).to(device)
-        self.buffer = ReplayBuffer(num_features, num_actions, learning_params, device)
+        self.buffer = ReplayBuffer(num_features, num_actions, learning_params, device, model_params.type)
 
         if learning_params.tabular_case:
             self.optimizer = optim.SGD(self.ltl_q_net.parameters(), lr=learning_params.lr)
@@ -111,27 +122,31 @@ class LTLEncDQNAgent(BaseRLAgent):
         self.tar_ltl_q_net.load_state_dict(self.ltl_q_net.state_dict())
 
     def preprocess_ltl(self, ltl_formula):
-        return preprocess([ltl_formula], self.vocab, self.learning_params.max_ltl_len)
+        if self.model_params.type=="transformer":
+            return preprocess([ltl_formula], self.vocab, self.learning_params.max_ltl_len)
+        elif self.model_params.type=="embedding":
+            assert ltl_formula in self.ltl2id
+            return torch.LongTensor([self.ltl2id[ltl_formula]]).unsqueeze(0)
 
 
 class ReplayBuffer(object):
     # TODO: prioritized replay buffer
-    def __init__(self, num_features, num_actions, learning_params, device):
+    def __init__(self, num_features, num_actions, learning_params, device, type):
         """
         Create (Prioritized) Replay buffer.
         """
         # self.storage = []
 
         maxsize = learning_params.buffer_size
-        max_ltl_len = learning_params.max_ltl_len
+        ltl_dim = learning_params.max_ltl_len if type=="transformer" else 1
 
         self.maxsize = maxsize
         self.device = device
         self.S1 = torch.empty([maxsize, num_features], device=device)
-        self.LTL1 = torch.empty([maxsize, max_ltl_len], dtype=torch.long, device=device)  # tokenized LTL tensor
+        self.LTL1 = torch.empty([maxsize, ltl_dim], dtype=torch.long, device=device)  # tokenized LTL tensor
         self.A = torch.empty([maxsize, 1], dtype=torch.long, device=device)
         self.S2 = torch.empty([maxsize, num_features], device=device)
-        self.LTL2 = torch.empty([maxsize, max_ltl_len], dtype=torch.long, device=device)
+        self.LTL2 = torch.empty([maxsize, ltl_dim], dtype=torch.long, device=device)
         self.Rs = torch.empty([maxsize, 1], device=device)
         # self.NPs = torch.empty([maxsize, num_policies], dtype=torch.long, device=device)
         self.Done = torch.empty([maxsize, 1], dtype=torch.long, device=device)

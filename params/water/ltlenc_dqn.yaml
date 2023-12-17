@@ -25,15 +25,19 @@ model_params:
   num_hidden_layers: 6
   num_neurons: 256
 
+  type: "embedding" # "transformer" or "embedding"
+
   # transformer params
   d_model: 64
   nhead: 8
   num_encoder_layers: 4
+  d_out: 16 # output_dim of the encoding module
   pool: 'mean'
   dim_feedforward: 256
   dropout: 0.0
-  d_out: 16
   layer_norm_eps: 0.00001
   TFixup: true
 
-
+  # embedding params
+  max_num_formulas: 40  # max num of LTL formulas
+  embedding_dim: 16
