@@ -47,12 +47,14 @@ class LTLQNet(nn.Module):
         if model_params.type == "transformer":
             self.ltl_encoder = TransformerSyn(obs_size=num_obs,
                                               model_params=model_params)
+            enc_dim = model_params.d_out
         elif model_params.type == "embedding":
             self.ltl_encoder = nn.Embedding(num_embeddings=model_params.max_num_formulas,
-                                            embedding_dim=model_params.d_out)
+                                            embedding_dim=model_params.embedding_dim)
+            enc_dim = model_params.embedding_dim
         else:
             raise NotImplementedError("Unexpected model type:" + model_params.type)
-        enc_dim = model_params.d_out
+
         self.q_net = DeepQNet(input_dim=num_obs + enc_dim,
                               output_dim=num_actions,
                               model_params=model_params)

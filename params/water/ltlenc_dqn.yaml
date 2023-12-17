@@ -40,4 +40,4 @@ model_params:
 
   # embedding params
   max_num_formulas: 40  # max num of LTL formulas
-  embedding_dim: 16
+  embedding_dim: 128

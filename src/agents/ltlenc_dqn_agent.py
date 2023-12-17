@@ -105,9 +105,10 @@ class LTLEncDQNAgent(BaseRLAgent):
         if eval_mode:
             self.cur_ltl_eval = progress(self.cur_ltl_eval, events)
         else:
-            reward = 1 if self.cur_ltl == 'True' else 0
             ltl_tensor1 = self.preprocess_ltl(self.cur_ltl)
+            # TODO: check update
             self.cur_ltl = progress(self.cur_ltl, events)
+            reward = 1 if self.cur_ltl == 'True' else 0
             ltl_tensor2 = self.preprocess_ltl(self.cur_ltl)
             self.buffer.add_data(s1, ltl_tensor1, a, s2, ltl_tensor2, reward, done)
 
