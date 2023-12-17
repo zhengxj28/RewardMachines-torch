@@ -36,13 +36,11 @@ class PPORMAlgo(NonMDPAlgo):
         tester = self.tester
         curriculum = self.curriculum
         agent = self.agent
-        show_print = self.show_print
 
         # Initializing parameters and the game
         learning_params = tester.learning_params
         testing_params = tester.testing_params
 
-        training_reward = 0
         # Getting the initial state of the environment and the reward machine
         env = self.create_env(task)
         s1 = env.reset()
@@ -60,14 +58,9 @@ class PPORMAlgo(NonMDPAlgo):
 
             # Learning
             cur_step = curriculum.get_current_step()
-            if cur_step >= learning_params.learning_starts:
-                if agent.buffer.is_full() or done:
-                    loss_info = agent.learn()
-                    agent.buffer.clear()  # Once learned, clear the data
-
-
-            # Printing
-            training_reward += env_reward
+            if agent.buffer.is_full() or done:
+                self.loss_info = agent.learn()
+                agent.buffer.clear()  # Once learned, clear the data
 
             # Testing
             if testing_params.test and cur_step % testing_params.test_freq == 0:

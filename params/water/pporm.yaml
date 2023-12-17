@@ -22,7 +22,7 @@ learning_params:
   n_updates: 10
   policy_loss_coef: 1.0
   value_loss_coef: 1.0
-  entropy_loss_coef: 0.01
+  entropy_loss_coef: 0
 
 
 model_params:
