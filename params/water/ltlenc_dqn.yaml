@@ -4,7 +4,7 @@ testing_params:
   num_steps: 600
 
 learning_params:
-  total_units: 200
+  total_units: 300
   step_unit: 10000  # 10000
   lr: 0.00001  # 5e-5 seems to be better than 1e-4
   epsilon: 0.1
@@ -26,6 +26,7 @@ model_params:
   num_neurons: 256
 
   type: "embedding" # "transformer" or "embedding"
+  enc_feature: "fine-tune" # "concat" or "fine-tune"
 
   # transformer params
   d_model: 64
@@ -40,4 +41,4 @@ model_params:
 
   # embedding params
   max_num_formulas: 40  # max num of LTL formulas
-  embedding_dim: 128
+  embedding_dim: 256

@@ -44,6 +44,7 @@ class LTLQNet(nn.Module):
     def __init__(self, num_obs, num_actions, model_params):
         super().__init__()
         self.type = model_params.type
+        self.enc_feature = model_params.enc_feature
         if model_params.type == "transformer":
             self.ltl_encoder = TransformerSyn(obs_size=num_obs,
                                               model_params=model_params)
@@ -55,14 +56,35 @@ class LTLQNet(nn.Module):
         else:
             raise NotImplementedError("Unexpected model type:" + model_params.type)
 
-        self.q_net = DeepQNet(input_dim=num_obs + enc_dim,
-                              output_dim=num_actions,
-                              model_params=model_params)
+        if model_params.enc_feature == "concat":
+            self.q_net = DeepQNet(input_dim=num_obs + enc_dim,
+                                  output_dim=num_actions,
+                                  model_params=model_params)
+        elif model_params.enc_feature == "fine-tune":
+            num_neurons = model_params.num_neurons
+            self.q_net = DeepQNet(input_dim=num_obs,
+                                  output_dim=num_neurons,
+                                  model_params=model_params)
+            # self.fine_tune_layer = nn.Linear(in_features=model_params.num_neurons+enc_dim,
+            #                                  out_features=num_actions)
+            self.fine_tune_layer = nn.Sequential(
+                nn.Linear(num_neurons+enc_dim, num_neurons),
+                nn.ReLU(),
+                nn.Linear(num_neurons, num_neurons),
+                nn.ReLU(),
+                nn.Linear(num_neurons, num_actions),
+            )
+        else:
+            raise NotImplementedError("Unexpected enc_feature process method:" + model_params.enc_feature)
 
     def forward(self, obs, ltl_input):
         ltl_enc = self.ltl_encoder(ltl_input)
         if self.type == "embedding":
             ltl_enc = ltl_enc.squeeze(1)
-        dqn_input = torch.cat([ltl_enc, obs], dim=1)
-        q_values = self.q_net(dqn_input)
+        if self.enc_feature == "concat":
+            dqn_input = torch.cat([ltl_enc, obs], dim=1)
+            q_values = self.q_net(dqn_input)
+        elif self.enc_feature == "fine-tune":
+            q_hidden = self.q_net(obs)
+            q_values = self.fine_tune_layer(torch.cat([ltl_enc, q_hidden], dim=1))
         return q_values
