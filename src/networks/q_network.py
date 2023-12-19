@@ -56,6 +56,7 @@ class LTLQNet(nn.Module):
         else:
             raise NotImplementedError("Unexpected model type:" + model_params.type)
 
+        # "concat" seems better than "fine-tune"
         if model_params.enc_feature == "concat":
             self.q_net = DeepQNet(input_dim=num_obs + enc_dim,
                                   output_dim=num_actions,
@@ -65,15 +66,16 @@ class LTLQNet(nn.Module):
             self.q_net = DeepQNet(input_dim=num_obs,
                                   output_dim=num_neurons,
                                   model_params=model_params)
-            # self.fine_tune_layer = nn.Linear(in_features=model_params.num_neurons+enc_dim,
-            #                                  out_features=num_actions)
-            self.fine_tune_layer = nn.Sequential(
-                nn.Linear(num_neurons+enc_dim, num_neurons),
-                nn.ReLU(),
-                nn.Linear(num_neurons, num_neurons),
-                nn.ReLU(),
-                nn.Linear(num_neurons, num_actions),
-            )
+            # 1-layer is better than 3-layer
+            self.fine_tune_layer = nn.Linear(in_features=model_params.num_neurons+enc_dim,
+                                             out_features=num_actions)
+            # self.fine_tune_layer = nn.Sequential(
+            #     nn.Linear(num_neurons+enc_dim, num_neurons),
+            #     nn.ReLU(),
+            #     nn.Linear(num_neurons, num_neurons),
+            #     nn.ReLU(),
+            #     nn.Linear(num_neurons, num_actions),
+            # )
         else:
             raise NotImplementedError("Unexpected enc_feature process method:" + model_params.enc_feature)
 
