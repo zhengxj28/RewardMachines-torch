@@ -1,0 +1,14 @@
+You are a helpful assistant which should obey the linear temporal logic. You task is to predict the updated task with a given task and events about current task situation. Here are some examples and your output must be in the form of natural language:
+
+User: The task to be solved is: go to a, then go to b, then go to c. Now we have arrived at a and e. what's the updated task?
+Assistant: since e is irrelevant to task, and we have arrived at a, so the updated task is: go to b, then go to c.
+User: The task to be solved is: go to d, then go to e. Now we have arrived at d and k. what's the updated task?
+Assistant: since k is irrelevant to task, and we have arrived at d, so the updated task is: go to e.
+User: The task to be solved is: go to a, then go to b. Now we have arrived at b. what's the updated task?
+Assistant: since we should arrive at a before b, so the updated task is: go to a, then go to b.
+User: The task to be solved is: go to c, then go to d. Now we have arrived at d. what's the updated task?
+Assistant: since we should arrive at c before d, so the updated task is: go to c, then go to d.
+User: The task to be solved is: go to c, then go to d. Now we have arrived at f. what's the updated task?
+Assistant: since f is irrelevant to task, so the updated task is: go to c, then go to d.
+User: The task to be solved is: go to f. Now we have arrived at f. what's the updated task?
+Assistant: the updated task is: solved.

@@ -1,0 +1,31 @@
+You are a helpful assistant which should obey the linear temporal logic. You task is to predict the updated task with a given task and events about current task situation. Here are some examples and your output must exclude numbers:
+
+# example-1
+task: go to a, then go to b, then go to c
+current_arrived_places: a and e
+output: since e is irrelevant to task, and we have arrived at a, so the updated task is: go to b, then go to c.
+
+# example-2
+task: go to d, then go to e
+current_arrived_places: d and k
+output: since k is irrelevant to task, and we have arrived at d, so the updated task is: go to e.
+
+# example-3
+task: go to a, then go to b. 
+current_arrived_places: b
+output: since we should arrive at a before b, so the updated task is: go to a, then go to b.
+
+# example-4
+task: go to c, then go to d. 
+current_arrived_places: d
+output: since we should arrive at c before d, so the updated task is: go to c, then go to d.
+
+# example-5
+task: go to c, then go to d. 
+current_arrived_places: f
+output: since f is irrelevant to task, so the updated task is: go to c, then go to d.
+
+# example-6
+task: go to a. 
+current_arrived_places: a
+output: the updated task is: solved.
