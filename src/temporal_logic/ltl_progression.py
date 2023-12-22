@@ -22,7 +22,7 @@ def extract_propositions(ltl_formula):
 def get_dfa(ltl_formula):
     propositions = extract_propositions(ltl_formula)  # type(propostions)=list
     propositions.sort()
-    label_set = _get_truth_assignments(propositions)  # power set
+    label_set = get_truth_assignments(propositions)  # power set
 
     # Creating DFA using progression
     # ltl2state = {'False': -1, ltl_formula: 0}
@@ -66,7 +66,7 @@ def get_dfa(ltl_formula):
 def get_progressed_formulas(ltl_formula):
     propositions = extract_propositions(ltl_formula)  # type(propostions)=list
     propositions.sort()
-    label_set = _get_truth_assignments(propositions)  # power set
+    label_set = get_truth_assignments(propositions)  # power set
 
     progressed_formulas = {'False', 'True', ltl_formula}
 
@@ -81,7 +81,7 @@ def get_progressed_formulas(ltl_formula):
                 queue.append(f_progressed)
     return progressed_formulas
 
-def _get_truth_assignments(propositions_list):
+def get_truth_assignments(propositions_list):
     # computing all possible value assignments for propositions_list
     truth_assignments = []
     for p in range(2 ** len(propositions_list)):

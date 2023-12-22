@@ -84,9 +84,9 @@ class LTLQNet(nn.Module):
         if self.type == "embedding":
             ltl_enc = ltl_enc.squeeze(1)
         if self.enc_feature == "concat":
-            dqn_input = torch.cat([ltl_enc, obs], dim=1)
+            dqn_input = torch.cat([ltl_enc, obs], dim=-1)
             q_values = self.q_net(dqn_input)
         elif self.enc_feature == "fine-tune":
             q_hidden = self.q_net(obs)
-            q_values = self.fine_tune_layer(torch.cat([ltl_enc, q_hidden], dim=1))
+            q_values = self.fine_tune_layer(torch.cat([ltl_enc, q_hidden], dim=-1))
         return q_values
