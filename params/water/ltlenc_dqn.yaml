@@ -6,13 +6,13 @@ testing_params:
 learning_params:
   total_units: 500
   step_unit: 10000  # 10000
-  lr: 0.0001  # 5e-5 seems to be better than 1e-4
+  lr: 0.00005  # data_augment: false:1e-5, true:5e-5
   epsilon: 0.1
   gamma: 0.9
   buffer_size: 50000
   train_freq: 1
   batch_size: 32
-  target_network_update_freq: 100  # obs: 500 makes learning more stable, but slower
+  target_network_update_freq: 100  # 100
   learning_starts: 1000
   tabular_case: false
   use_random_maps: false
@@ -23,7 +23,7 @@ learning_params:
 model_params:
   tabular_case: false
   num_hidden_layers: 6
-  num_neurons: 256
+  num_neurons: 256  # 256
 
   type: "embedding" # "transformer" or "embedding"
   enc_feature: "concat" # "concat" or "fine-tune"
@@ -42,4 +42,4 @@ model_params:
 
   # embedding params
   max_num_formulas: 40  # max num of LTL formulas
-  embedding_dim: 32
+  embedding_dim: 32 # 32
