@@ -7,7 +7,7 @@ if __name__ == '__main__':
 from src.reward_machines.reward_functions import *
 from src.reward_machines.reward_machine_utils import evaluate_dnf, are_these_machines_equivalent, value_iteration
 import time, collections
-from src.temporal_logic.ltl_progression import progress, get_propositions
+from src.temporal_logic.ltl_progression import progress, get_truth_assignments
 
 
 class RewardMachine:
@@ -178,12 +178,15 @@ class RewardMachine:
         f = open(file)
         lines = [l.rstrip() for l in f]
         f.close()
-        self.label_set = eval(lines[0])
+        self.propositions = eval(lines[0])
         self.ltl2state = {'False': 0, 'True': 1}
         self.terminal = {0, 1}
         self.U = [0, 1]
         self.u0 = 2  # we let the initial state be the first formula id
         self.u_broken = 0   # the broken state is 'False'
+        label_list = get_truth_assignments(self.propositions)
+        label_list.sort()
+        self.label_set = set(label_list)
         # terminal state: 'False' and 'True' do not transit to other state
         self.delta_u[0] = dict([(p, 0) for p in self.label_set])
         self.delta_u[1] = dict([(p, 1) for p in self.label_set])

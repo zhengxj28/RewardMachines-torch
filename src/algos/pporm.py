@@ -4,7 +4,7 @@ import wandb
 
 from src.algos.nmdp_algo import NonMDPAlgo
 from src.agents.pporm_agent import PPORMAgent
-from src.worlds.game import Game
+from src.worlds.game import RewardMachinesEnv
 
 
 class PPORMAlgo(NonMDPAlgo):
@@ -15,7 +15,7 @@ class PPORMAlgo(NonMDPAlgo):
         self.use_cuda = use_cuda
         self.loss_info = {}
 
-        task_aux = Game(tester.get_task_params(curriculum.get_current_task()), None)
+        task_aux = RewardMachinesEnv(tester.get_task_params(curriculum.get_current_task()), None)
         num_features = task_aux.num_features
         num_actions = task_aux.num_actions
 

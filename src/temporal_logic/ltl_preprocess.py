@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import re
 
-sltl_tokens = ['and', 'or', 'not', 'next', 'until', 'eventually', 'then', 'true', 'false']
+sltl_tokens = ['and', 'or', 'not', 'next', 'until', 'eventually', 'then', 'True', 'False']
 
 def preprocess(formulas, vocab, max_text_len, device=None):
     # convert formulas (list[str]) into Tensor

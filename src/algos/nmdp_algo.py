@@ -1,7 +1,7 @@
 import time
 import wandb
 from src.algos.base_algo import BaseAlgo
-from src.worlds.game import Game
+from src.worlds.game import RewardMachinesEnv
 
 
 class NonMDPAlgo(BaseAlgo):
@@ -17,7 +17,7 @@ class NonMDPAlgo(BaseAlgo):
         task_params = tester.get_task_params(task)
 
         rm = reward_machines[task_rm_id]
-        env = Game(task_params, rm)
+        env = RewardMachinesEnv(task_params, rm)
 
         return env
 

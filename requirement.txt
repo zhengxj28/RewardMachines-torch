@@ -3,3 +3,5 @@ torch==2.0.0
 wandb==0.14.2
 pyyaml
 pynvml
+mujoco-py==2.1.2.14
+Cython==0.29.37
