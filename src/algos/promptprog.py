@@ -2,11 +2,8 @@ import random
 import time
 import wandb
 
-# from src.algos.nmdp_algo import NonMDPAlgo
 from src.algos.nmdp_algo import BaseAlgo
-# from src.agents.qrm_agent import QRMAgent
 from src.agents.promptprog_agent import PromptProgAgent
-# from src.worlds.game import Game
 from src.worlds.game_llm import LLMGame
 
 
@@ -18,11 +15,9 @@ class PromptProgAlgo(BaseAlgo):
         self.show_print = show_print
         self.use_cuda = use_cuda
         self.loss_info = {}
-        
-        # TODO: remove reward machine elements
-        task_aux = LLMGame(tester.get_task_params(curriculum.get_current_task()))
-        num_features = task_aux.num_features
-        num_actions = task_aux.num_actions
+
+        num_features = tester.num_features
+        num_actions = tester.num_actions
         
         learning_params = tester.learning_params
         model_params = tester.model_params

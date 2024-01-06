@@ -1,7 +1,6 @@
 import time
 import wandb
 from src.algos.base_algo import BaseAlgo
-from src.worlds.game import RewardMachinesEnv
 
 
 class NonMDPAlgo(BaseAlgo):
@@ -9,17 +8,6 @@ class NonMDPAlgo(BaseAlgo):
         super().__init__(tester, curriculum)
         self.loss_info = {}
 
-
-    def create_env(self, task):
-        tester = self.tester
-        reward_machines = tester.get_reward_machines()
-        task_rm_id = tester.get_reward_machine_id_from_file(task)
-        task_params = tester.get_task_params(task)
-
-        rm = reward_machines[task_rm_id]
-        env = RewardMachinesEnv(task_params, rm)
-
-        return env
 
     def train_episode(self, *args):
         pass

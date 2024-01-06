@@ -464,117 +464,117 @@ def get_colors():
     return colors
 
 
-def play():
-    import pygame, time
-    from reward_machines.reward_machine import RewardMachine
-
-    from tester.tester import Tester
-    from tester.tester_params import TestingParameters
-    from qrm.learning_params import LearningParameters
-
-    # hack: moving one directory up (to keep relative references to ./src)
-    import os
-    os.chdir("../")
-
-    tester = Tester(LearningParameters(), TestingParameters(), "../experiments/water/tests/water_7.txt")
-    if tester is None:
-        task = "../experiments/water/reward_machines/t1.txt"
-        state_file = "../experiments/water/maps/world_0.pkl"
-        max_x = 400
-        max_y = 400
-        b_num_per_color = 2
-        b_radius = 15
-        use_velocities = True
-        ball_disappear = False
-
-        params = WaterWorldParams(state_file, b_radius=b_radius, max_x=max_x, max_y=max_y,
-                                  b_num_per_color=b_num_per_color, use_velocities=use_velocities,
-                                  ball_disappear=ball_disappear)
-    else:
-        task = tester.get_tasks()[-2]
-        params = tester.get_task_params(task).game_params
-
-    max_x, max_y = params.max_x, params.max_y
-
-    game = WaterWorld(params)
-    rm = RewardMachine(task)
-    s1 = game.get_state()
-    u1 = rm.get_initial_state()
-
-    print("actions", game.get_actions())
-
-    pygame.init()
-
-    black = (0, 0, 0)
-    white = (255, 255, 255)
-    colors = get_colors()
-
-    gameDisplay = pygame.display.set_mode((max_x, max_y))
-    pygame.display.set_caption('Water world :)')
-    clock = pygame.time.Clock()
-    crashed = False
-
-    t_previous = time.time()
-    actions = set()
-    while not crashed:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                crashed = True
-            if event.type == pygame.KEYUP:
-                if Actions.left in actions and event.key == pygame.K_LEFT:
-                    actions.remove(Actions.left)
-                if Actions.right in actions and event.key == pygame.K_RIGHT:
-                    actions.remove(Actions.right)
-                if Actions.up in actions and event.key == pygame.K_UP:
-                    actions.remove(Actions.up)
-                if Actions.down in actions and event.key == pygame.K_DOWN:
-                    actions.remove(Actions.down)
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    actions.add(Actions.left)
-                if event.key == pygame.K_RIGHT:
-                    actions.add(Actions.right)
-                if event.key == pygame.K_UP:
-                    actions.add(Actions.up)
-                if event.key == pygame.K_DOWN:
-                    actions.add(Actions.down)
-
-        t_current = time.time()
-        t_delta = (t_current - t_previous)
-
-        # Getting the action
-        if len(actions) == 0:
-            a = Actions.none
-        else:
-            a = random.choice(list(actions))
-
-        # Executing the action
-        game.execute_action(a.value, t_delta)
-
-        s2 = game.get_state()
-        events = game.get_true_propositions()
-        u2 = rm.get_next_state(u1, events)
-        reward = rm.get_reward(u1, u2, s1, a, s2)
-
-        # printing image
-        gameDisplay.fill(white)
-        for b in game.balls:
-            draw_ball(b, colors, 0, gameDisplay, pygame, max_y)
-        draw_ball(game.agent, colors, 3, gameDisplay, pygame, max_y)
-        pygame.display.update()
-        clock.tick(20)
-
-        # print info related to the task
-        if reward > 0: print("REWARD!! ----------------!------------!")
-        if rm.is_terminal_state(u2):
-            print("Machine state:", u2, "(terminal)")
-        else:
-            print("Machine state:", u2)
-
-        t_previous = t_current
-        s1, u1 = s2, u2
-
-    pygame.quit()
+# def play():
+#     import pygame, time
+#     from reward_machines.reward_machine import RewardMachine
+#
+#     from tester.tester import Tester
+#     from tester.tester_params import TestingParameters
+#     from qrm.learning_params import LearningParameters
+#
+#     # hack: moving one directory up (to keep relative references to ./src)
+#     import os
+#     os.chdir("../")
+#
+#     tester = Tester(LearningParameters(), TestingParameters(), "../experiments/water/tests/water_7.txt")
+#     if tester is None:
+#         task = "../experiments/water/reward_machines/t1.txt"
+#         state_file = "../experiments/water/maps/world_0.pkl"
+#         max_x = 400
+#         max_y = 400
+#         b_num_per_color = 2
+#         b_radius = 15
+#         use_velocities = True
+#         ball_disappear = False
+#
+#         params = WaterWorldParams(state_file, b_radius=b_radius, max_x=max_x, max_y=max_y,
+#                                   b_num_per_color=b_num_per_color, use_velocities=use_velocities,
+#                                   ball_disappear=ball_disappear)
+#     else:
+#         task = tester.get_tasks()[-2]
+#         params = tester.get_task_params(task).game_params
+#
+#     max_x, max_y = params.max_x, params.max_y
+#
+#     game = WaterWorld(params)
+#     rm = RewardMachine(task)
+#     s1 = game.get_state()
+#     u1 = rm.get_initial_state()
+#
+#     print("actions", game.get_actions())
+#
+#     pygame.init()
+#
+#     black = (0, 0, 0)
+#     white = (255, 255, 255)
+#     colors = get_colors()
+#
+#     gameDisplay = pygame.display.set_mode((max_x, max_y))
+#     pygame.display.set_caption('Water world :)')
+#     clock = pygame.time.Clock()
+#     crashed = False
+#
+#     t_previous = time.time()
+#     actions = set()
+#     while not crashed:
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                 crashed = True
+#             if event.type == pygame.KEYUP:
+#                 if Actions.left in actions and event.key == pygame.K_LEFT:
+#                     actions.remove(Actions.left)
+#                 if Actions.right in actions and event.key == pygame.K_RIGHT:
+#                     actions.remove(Actions.right)
+#                 if Actions.up in actions and event.key == pygame.K_UP:
+#                     actions.remove(Actions.up)
+#                 if Actions.down in actions and event.key == pygame.K_DOWN:
+#                     actions.remove(Actions.down)
+#             if event.type == pygame.KEYDOWN:
+#                 if event.key == pygame.K_LEFT:
+#                     actions.add(Actions.left)
+#                 if event.key == pygame.K_RIGHT:
+#                     actions.add(Actions.right)
+#                 if event.key == pygame.K_UP:
+#                     actions.add(Actions.up)
+#                 if event.key == pygame.K_DOWN:
+#                     actions.add(Actions.down)
+#
+#         t_current = time.time()
+#         t_delta = (t_current - t_previous)
+#
+#         # Getting the action
+#         if len(actions) == 0:
+#             a = Actions.none
+#         else:
+#             a = random.choice(list(actions))
+#
+#         # Executing the action
+#         game.execute_action(a.value, t_delta)
+#
+#         s2 = game.get_state()
+#         events = game.get_true_propositions()
+#         u2 = rm.get_next_state(u1, events)
+#         reward = rm.get_reward(u1, u2, s1, a, s2)
+#
+#         # printing image
+#         gameDisplay.fill(white)
+#         for b in game.balls:
+#             draw_ball(b, colors, 0, gameDisplay, pygame, max_y)
+#         draw_ball(game.agent, colors, 3, gameDisplay, pygame, max_y)
+#         pygame.display.update()
+#         clock.tick(20)
+#
+#         # print info related to the task
+#         if reward > 0: print("REWARD!! ----------------!------------!")
+#         if rm.is_terminal_state(u2):
+#             print("Machine state:", u2, "(terminal)")
+#         else:
+#             print("Machine state:", u2)
+#
+#         t_previous = t_current
+#         s1, u1 = s2, u2
+#
+#     pygame.quit()
 
 
 def save_random_world(num_worlds, folder_out="../../experiments/water/maps/"):
@@ -594,5 +594,6 @@ def save_random_world(num_worlds, folder_out="../../experiments/water/maps/"):
 
 # This code allow to play a game (for debugging purposes)
 if __name__ == '__main__':
-    play()
+    # play()
     # save_random_world(11)
+    pass

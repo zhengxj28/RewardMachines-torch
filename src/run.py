@@ -30,6 +30,9 @@ def run_experiment(args, tester, curriculum):
     elif alg_name == "ltlenc_dqn":
         from src.algos.ltlenc_dqn import LTLEncDQNAlgo
         algo = LTLEncDQNAlgo(tester, curriculum, show_print, use_cuda)
+    elif alg_name == "ppo":
+        from src.algos.ppo import PPOAlgo
+        algo = PPOAlgo(tester, curriculum, show_print, use_cuda)
     elif alg_name == "pporm":
         from src.algos.pporm import PPORMAlgo
         algo = PPORMAlgo(tester, curriculum, show_print, use_cuda)

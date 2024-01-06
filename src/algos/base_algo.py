@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from src.agents.base_rl_agent import DefaultAgent
 from src.worlds.base_env import DefaultEnv
+from src.worlds.reward_machines_env import RewardMachinesEnv
 
 class BaseAlgo(ABC):
     def __init__(self, tester, curriculum, *args):
@@ -16,9 +17,9 @@ class BaseAlgo(ABC):
             task = curriculum.get_next_task()
             self.train_episode(task)
 
-    @abstractmethod
     def create_env(self, task):
-        pass
+        env = RewardMachinesEnv(self.tester, task)
+        return env
     @abstractmethod
     def train_episode(self, *args):
         pass

@@ -1,4 +1,4 @@
-from src.worlds.game import GameParams
+from src.worlds.reward_machines_env import GameParams
 from src.worlds.office_world import OfficeWorldParams
 
 class TesterOfficeWorld:

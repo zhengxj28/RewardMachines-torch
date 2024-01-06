@@ -4,7 +4,6 @@ import wandb
 
 from src.algos.nmdp_algo import NonMDPAlgo
 from src.agents.qrm_agent import QRMAgent
-from src.worlds.game import RewardMachinesEnv
 
 
 class QRMAlgo(NonMDPAlgo):
@@ -15,9 +14,11 @@ class QRMAlgo(NonMDPAlgo):
         self.use_cuda = use_cuda
         self.loss_info = {}
 
-        task_aux = RewardMachinesEnv(tester.get_task_params(curriculum.get_current_task()), None)
-        num_features = task_aux.num_features
-        num_actions = task_aux.num_actions
+        # task_aux = RewardMachinesEnv(tester.get_task_params(curriculum.get_current_task()), None)
+        # num_features = task_aux.num_features
+        # num_actions = task_aux.num_actions
+        num_features = tester.num_features
+        num_actions = tester.num_actions
 
         learning_params = tester.learning_params
         model_params = tester.model_params

@@ -20,41 +20,47 @@ class GameParams:
 
 
 class RewardMachinesEnv(BaseEnv):
-    def __init__(self, params, rm):
+    def __init__(self, tester, task):
+        reward_machines = tester.get_reward_machines()
+        task_rm_id = tester.get_reward_machine_id_from_file(task)
+        env_params = tester.get_task_params(task).game_params
+        self.env_params = env_params
+
+        rm = reward_machines[task_rm_id]
         super().__init__()
-        self.params = params
-        if params.game_type in toy_game_types:
-            if params.game_type == "craftworld":
-                self.world = CraftWorld(params.game_params)
-            if params.game_type == "waterworld":
-                self.world = WaterWorld(params.game_params)
-            if params.game_type == "officeworld":
-                self.world = OfficeWorld(params.game_params)
+        env_name = tester.game_type
+        self.env_name = env_name
+        if env_name in toy_game_types:
+            if env_name == "craftworld":
+                self.world = CraftWorld(env_params)
+            if env_name == "waterworld":
+                self.world = WaterWorld(env_params)
+            if env_name == "officeworld":
+                self.world = OfficeWorld(env_params)
             self.num_features = len(self.world.get_features())
             self.num_actions = len(self.world.get_actions())
-        elif params.game_type in ["half_cheetah"]:
-            self.world = LabellingHalfCheetahEnv
+        elif env_name in ["half_cheetah"]:
+            self.world = LabellingHalfCheetahEnv()
 
-        if rm:
+        if rm is not None:
             self.rm = rm
             self.u = rm.get_initial_state()  # RM state
 
     def reset(self):
-        params = self.params
-        if params.game_type in toy_game_types:
-            if params.game_type == "craftworld":
-                self.world = CraftWorld(params.game_params)
-            if params.game_type == "waterworld":
-                self.world = WaterWorld(params.game_params)
-            if params.game_type == "officeworld":
-                self.world = OfficeWorld(params.game_params)
+        if self.env_name in toy_game_types:
+            if self.env_name == "craftworld":
+                self.world = CraftWorld(self.env_params)
+            if self.env_name == "waterworld":
+                self.world = WaterWorld(self.env_params)
+            if self.env_name == "officeworld":
+                self.world = OfficeWorld(self.env_params)
             return self.world.get_features()
         else:
             return self.world.reset()
 
 
     def step(self, a):
-        if self.params.game_type in toy_game_types:
+        if self.env_name in toy_game_types:
             """
             We execute 'action' in the game
             Returns the reward
@@ -69,9 +75,10 @@ class RewardMachinesEnv(BaseEnv):
             r = self.rm.get_reward(u1, u2, s1, a, s2, eval_mode=True)
             done = self.rm.is_terminal_state(u2) or self.world.env_game_over
             if r == 0: r = -0.01
+            events = self.get_true_propositions()
         else:
             s2, r, done, info = self.world.step(a)
-        events = self.get_true_propositions()
+
         return s2, r, done, events
 
     def get_true_propositions(self):
