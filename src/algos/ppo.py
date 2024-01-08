@@ -22,7 +22,8 @@ class PPOAlgo(NonMDPAlgo):
         self.agent = PPOAgent(num_features, num_actions,
                               learning_params,
                               model_params,
-                              use_cuda)
+                              use_cuda,
+                              curriculum)
 
     def train_episode(self, task):
         """
@@ -45,7 +46,7 @@ class PPOAlgo(NonMDPAlgo):
         # Starting interaction with the environment
         num_steps = testing_params.num_steps
         t = 0
-        while t<num_steps:
+        while t < num_steps:
             curriculum.add_step()
             a, log_prob = agent.get_action(s1)
             # do not use reward from env to learn
@@ -73,10 +74,9 @@ class PPOAlgo(NonMDPAlgo):
             t += 1
 
         # truncated caused by max episode steps
-        if t==num_steps:
+        if t >= num_steps:
             self.loss_info = agent.learn()
             agent.buffer.clear()  # Once learned, clear the data
-
 
     def evaluate_episode(self, task):
         env = self.create_env(task)

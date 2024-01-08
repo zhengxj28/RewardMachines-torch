@@ -6,3 +6,4 @@
 /src/wandb
 /data
 /logs
+.run

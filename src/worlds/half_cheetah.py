@@ -6,11 +6,11 @@ import numpy as np
 from gym.envs.mujoco.half_cheetah_v3 import HalfCheetahEnv
 # from reward_machines.rm_environment import RewardMachineEnv
 
-class LabellingHalfCheetahEnv(gym.Wrapper):
+class LabellingHalfCheetahEnv:
     def __init__(self):
         # Note that the current position is key for our tasks
-        super().__init__(HalfCheetahEnv(exclude_current_positions_from_observation=False))
-        # super().__init__(gym.make("HalfCheetah-v3"))
+        # super().__init__(HalfCheetahEnv(exclude_current_positions_from_observation=False))
+        self.env = gym.make("HalfCheetah-v3")
 
 
     def step(self, action):

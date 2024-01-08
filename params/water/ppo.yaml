@@ -4,10 +4,11 @@ testing_params:
   num_steps: 1000
 
 learning_params:
+  tabular_case: false
   total_units: 1000
   step_unit: 1000
-  lr: 0.0003
-  gamma: 0.99
+  lr: 0.00001
+  gamma: 0.9
   buffer_size: 2048
   train_freq: 1
   batch_size: 32  # mini-batch, 32 or 64
@@ -15,14 +16,15 @@ learning_params:
   adam_eps: 0.00001
 
   use_random_maps: false
-  tabular_case: false
+  use_grad_clip: true
+  use_lr_decay: true
 
   # ppo params
   clip_rate: 0.2
   lam: 0.95
   n_updates: 10
   policy_loss_coef: 1.0
-  value_loss_coef: 0.5
+  value_loss_coef: 1.0
   entropy_loss_coef: 0
 
 

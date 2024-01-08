@@ -43,8 +43,8 @@ class RewardMachinesEnv(BaseEnv):
             self.num_actions = len(self.world.get_actions())
         elif env_name in ["half_cheetah"]:
             self.world = LabellingHalfCheetahEnv()
-            self.num_features = self.world.observation_space.shape[0]
-            self.num_actions = self.world.action_space.shape[0]
+            self.num_features = self.world.env.observation_space.shape[0]
+            self.num_actions = self.world.env.action_space.shape[0]
 
         if rm is not None:
             self.rm = rm
@@ -60,7 +60,7 @@ class RewardMachinesEnv(BaseEnv):
                 self.world = OfficeWorld(self.env_params)
             return self.world.get_features()
         else:
-            return self.world.reset()[0]
+            return self.world.env.reset()[0]
 
 
     def step(self, a):

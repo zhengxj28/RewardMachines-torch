@@ -1,7 +1,7 @@
 testing_params:
   test: true
-  test_freq: 1000
-  num_steps: 2048
+  test_freq: 1000 # should be equals to step_unit
+  num_steps: 1000 # max length of an episode
 
 learning_params:
   tabular_case: false
@@ -9,19 +9,20 @@ learning_params:
   step_unit: 1000
   lr: 0.0003
   gamma: 0.99
-  buffer_size: 5000 # 2048
-  train_freq: 1
-  batch_size: 32  # mini-batch, 32 or 64
-  learning_starts: 1
+  buffer_size: 2048 # as long as >=num_steps
+  batch_size: 64  # mini-batch, 32 or 64
   adam_eps: 0.00001
+
+  use_grad_clip: false
+  use_lr_decay: false
 
   # ppo params
   clip_rate: 0.2
   lam: 0.95
   n_updates: 10
   policy_loss_coef: 1.0
-  value_loss_coef: 0.5
-  entropy_loss_coef: 0
+  value_loss_coef: 1.0
+  entropy_loss_coef: 0.01
 
 
 model_params:

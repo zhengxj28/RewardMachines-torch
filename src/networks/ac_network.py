@@ -91,7 +91,6 @@ class ActorNet(nn.Module):
             x = nn.Tanh()(x)
         x = self.layers[self.num_hidden_layers-1](x)
         x = nn.Tanh()(x) * self.action_bound
-        # output the probability of choosing each action
         return x
 
     def get_dist(self, s):

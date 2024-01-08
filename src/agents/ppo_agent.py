@@ -12,7 +12,7 @@ from src.agents.base_rl_agent import BaseRLAgent
 
 
 class PPOAgent(BaseRLAgent):
-    def __init__(self, num_features, num_actions, learning_params, model_params, use_cuda):
+    def __init__(self, num_features, num_actions, learning_params, model_params, use_cuda, curriculum):
         BaseRLAgent.__init__(self, use_cuda)
 
         self.num_features = num_features
@@ -20,6 +20,7 @@ class PPOAgent(BaseRLAgent):
         self.learning_params = learning_params
         self.model_params = model_params
         self.action_bound = model_params.action_bound
+        self.curriculum = curriculum
 
         device = self.device
 
@@ -70,8 +71,6 @@ class PPOAgent(BaseRLAgent):
                     SubsetRandomSampler(range(ep_len)),
                     self.learning_params.batch_size,
                     False):
-                policy_loss = torch.Tensor([0.0]).to(self.device)
-                total_entropy = torch.Tensor([0.0]).to(self.device)
 
                 dist = self.actor_net.get_dist(s1[idx])
                 new_log_prob = dist.log_prob(a[idx])
@@ -81,8 +80,8 @@ class PPOAgent(BaseRLAgent):
                 ratio = torch.exp(new_log_prob.sum(-1) - old_log_prob[idx].sum(-1))
                 surr1 = ratio * gaes[idx]
                 surr2 = torch.clamp(ratio, 1 - clip_rate, 1 + clip_rate) * gaes[idx]
-                policy_loss += -torch.mean(torch.min(surr1, surr2))
-                total_entropy += torch.mean(ent)
+                policy_loss = -torch.mean(torch.min(surr1, surr2))
+                total_entropy = torch.mean(ent)
 
                 v1 = self.critic_net(s1[idx]).squeeze(-1)
 
@@ -92,6 +91,9 @@ class PPOAgent(BaseRLAgent):
                 self.actor_optim.zero_grad()
                 self.critic_optim.zero_grad()
                 loss.backward()
+                if self.learning_params.use_grad_clip:
+                    torch.nn.utils.clip_grad_norm_(self.actor_net.parameters(), 0.5)
+                    torch.nn.utils.clip_grad_norm_(self.critic_net.parameters(), 0.5)
                 self.actor_optim.step()
                 self.critic_optim.step()
 
@@ -99,20 +101,23 @@ class PPOAgent(BaseRLAgent):
                 loss_dict["policy_loss"] = policy_loss.cpu().item()
                 loss_dict["value_loss"] = value_loss.cpu().item()
                 loss_dict["entropy"] = total_entropy.cpu().item()
-
+        if self.learning_params.use_lr_decay:
+            self.lr_decay()
         return loss_dict
 
     def get_action(self, s, eval_mode=False):
         device = self.device
         s = torch.Tensor(s).view(1, -1).to(device)
-        with torch.no_grad():
-            dist = self.actor_net.get_dist(s)
-            a = dist.sample()
-            a = torch.clamp(a, -self.action_bound, self.action_bound)
-            log_prob = dist.log_prob(a)
         if not eval_mode:
+            with torch.no_grad():
+                dist = self.actor_net.get_dist(s)
+                a = dist.sample()
+                a = torch.clamp(a, -self.action_bound, self.action_bound)
+                log_prob = dist.log_prob(a)
             return a.cpu().numpy().flatten(), log_prob
         else:
+            with torch.no_grad():
+                a = self.actor_net(s)
             return a.cpu().numpy().flatten()
 
     def update(self, s1, a, s2, env_reward, log_prob, done, eval_mode=False):
@@ -121,6 +126,15 @@ class PPOAgent(BaseRLAgent):
 
     def reset_status(self, task, eval_mode=False):
         pass
+
+    def lr_decay(self):
+        cur_steps = self.curriculum.get_current_step()
+        total_steps = self.curriculum.total_steps
+        cur_lr = self.learning_params.lr * (1 - cur_steps/total_steps)
+        for p in self.actor_optim.param_groups:
+            p['lr'] = cur_lr
+        for p in self.critic_optim.param_groups:
+            p['lr'] = cur_lr
 
 
 class ReplayBuffer(object):
@@ -142,7 +156,6 @@ class ReplayBuffer(object):
         self.num_data = 0  # truly stored datas
 
     def add_data(self, s1, a, s2, rewards, log_prob, done):
-        # `rewards[i]` is the reward of policy `i`
         idx = self.index
         self.S1[idx] = torch.Tensor(s1)
         # self.A[idx] = torch.LongTensor([a])
@@ -159,7 +172,6 @@ class ReplayBuffer(object):
         a = self.A[:self.index]
         s2 = self.S2[:self.index]
         r = self.R[:self.index]
-        # nps = self.NPs[:self.index]
         log_prob = self.OldLogProb[:self.index]
         done = self.Done[:self.index]
         return s1, a, s2, r, log_prob, done
