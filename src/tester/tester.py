@@ -1,6 +1,7 @@
 from src.tester.tester_craft import TesterCraftWorld
 from src.tester.tester_office import TesterOfficeWorld
 from src.tester.tester_water import TesterWaterWorld
+from src.tester.tester_mujoco import TesterMujoco
 from src.reward_machines.reward_machine import RewardMachine
 from src.tester.test_utils import read_json, get_precentiles_str, get_precentiles_in_seconds, reward2steps
 import numpy as np
@@ -34,7 +35,7 @@ class Tester:
         elif self.game_type == "waterworld":
             self.world = TesterWaterWorld(experiment_file, learning_params.use_random_maps)
         else:
-            self.world = None
+            self.world = TesterMujoco(experiment_file)
 
         # Creating the reward machines for each task
         # Although some algorithms do not use RM, we create RMs to generate/reshape env rewards.

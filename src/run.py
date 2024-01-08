@@ -71,14 +71,12 @@ if __name__ == "__main__":
     # EXAMPLE: python run.py --algorithm "qrm" --world "office" --seeds 0 1 2 3 4 --use_wandb
 
     # Getting params
-    worlds = ["office", "craft", "water"]
-
     parser = argparse.ArgumentParser(prog="run_experiments",
                                      description='Runs a multi-task RL experiment over a particular environment.')
     parser.add_argument('--algorithm', default='qrm', type=str,
                         help='This parameter indicated which RL algorithm to use.')
     parser.add_argument('--world', default='office', type=str,
-                        help='This parameter indicated which world to solve. The options are: ' + str(worlds))
+                        help='This parameter indicated which world to solve.')
     parser.add_argument('--map', default=0, type=int,
                         help='This parameter indicated which map to use. It must be a number between 0 and 10.')
     parser.add_argument('--seeds', nargs='+', type=int, default=[0],
@@ -104,7 +102,6 @@ if __name__ == "__main__":
     parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
 
     args = parser.parse_args()
-    if args.world not in worlds: raise NotImplementedError("World " + str(args.world) + " hasn't been defined yet")
     if not (0 <= args.map <= 10): raise NotImplementedError("The map must be a number between 0 and 10")
 
     alg_name = args.algorithm

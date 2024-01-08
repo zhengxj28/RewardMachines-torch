@@ -1,0 +1,32 @@
+testing_params:
+  test: true
+  test_freq: 1000
+  num_steps: 2048
+
+learning_params:
+  tabular_case: false
+  total_units: 1000
+  step_unit: 1000
+  lr: 0.0003
+  gamma: 0.99
+  buffer_size: 5000 # 2048
+  train_freq: 1
+  batch_size: 32  # mini-batch, 32 or 64
+  learning_starts: 1
+  adam_eps: 0.00001
+
+  # ppo params
+  clip_rate: 0.2
+  lam: 0.95
+  n_updates: 10
+  policy_loss_coef: 1.0
+  value_loss_coef: 0.5
+  entropy_loss_coef: 0
+
+
+model_params:
+  action_bound: 1.0
+  tabular_case: false
+  num_hidden_layers: 3
+  num_neurons: 64
+

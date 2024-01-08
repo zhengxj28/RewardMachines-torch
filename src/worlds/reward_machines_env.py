@@ -14,19 +14,21 @@ class GameParams:
     def __init__(self, game_type, game_params):
         self.game_type = game_type
         self.game_params = game_params
-        if self.game_type not in toy_game_types:
-            raise NotImplementedError(self.game_type + " is not currently supported")
-
-
 
 class RewardMachinesEnv(BaseEnv):
-    def __init__(self, tester, task):
+    def __init__(self, tester, task=None):
         reward_machines = tester.get_reward_machines()
-        task_rm_id = tester.get_reward_machine_id_from_file(task)
-        env_params = tester.get_task_params(task).game_params
+        if task is not None:
+            task_rm_id = tester.get_reward_machine_id_from_file(task)
+            env_params = tester.get_task_params(task).game_params
+            rm = reward_machines[task_rm_id]
+        else:
+            env_params = tester.get_task_params(task).game_params
+            rm = None
+
         self.env_params = env_params
 
-        rm = reward_machines[task_rm_id]
+
         super().__init__()
         env_name = tester.game_type
         self.env_name = env_name
@@ -41,6 +43,8 @@ class RewardMachinesEnv(BaseEnv):
             self.num_actions = len(self.world.get_actions())
         elif env_name in ["half_cheetah"]:
             self.world = LabellingHalfCheetahEnv()
+            self.num_features = self.world.observation_space.shape[0]
+            self.num_actions = self.world.action_space.shape[0]
 
         if rm is not None:
             self.rm = rm
@@ -56,7 +60,7 @@ class RewardMachinesEnv(BaseEnv):
                 self.world = OfficeWorld(self.env_params)
             return self.world.get_features()
         else:
-            return self.world.reset()
+            return self.world.reset()[0]
 
 
     def step(self, a):
@@ -75,10 +79,10 @@ class RewardMachinesEnv(BaseEnv):
             r = self.rm.get_reward(u1, u2, s1, a, s2, eval_mode=True)
             done = self.rm.is_terminal_state(u2) or self.world.env_game_over
             if r == 0: r = -0.01
-            events = self.get_true_propositions()
         else:
             s2, r, done, info = self.world.step(a)
-
+        events = self.get_true_propositions()
+        # TODO: return info rather than events
         return s2, r, done, events
 
     def get_true_propositions(self):
