@@ -1,15 +1,11 @@
 import torch
-import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-from torch.distributions import Categorical
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-import time, random
 import numpy as np
 from src.networks.ac_network import ActorNet, CriticNet
 from src.agents.base_rl_agent import BaseRLAgent
-
+from src.common.normalizer import Normalizer, RewardScaler
 
 class PPOAgent(BaseRLAgent):
     def __init__(self, num_features, num_actions, learning_params, model_params, use_cuda, curriculum):
@@ -37,6 +33,13 @@ class PPOAgent(BaseRLAgent):
             self.actor_optim = optim.Adam(self.actor_net.parameters(), lr=learning_params.lr, eps=learning_params.adam_eps)
             self.critic_optim = optim.Adam(self.critic_net.parameters(), lr=learning_params.lr, eps=learning_params.adam_eps)
 
+        # normalizer
+        self.state_normalizer = Normalizer(shape=num_features)
+        self.reward_normalizer = Normalizer(shape=1)
+        self.reward_scaler = RewardScaler(shape=1, gamma=self.learning_params.gamma)
+        # only use one of reward_normalizer or reward_scaler
+        assert not (self.learning_params.use_reward_norm and self.learning_params.use_reward_scaling)
+
     def learn(self):
         s1, a, s2, rs, old_log_prob, done = self.buffer.sample()
         gamma = self.learning_params.gamma
@@ -54,7 +57,7 @@ class PPOAgent(BaseRLAgent):
             done = done.squeeze(-1)
             v_tar = rs + gamma * v2 * (1 - done)
 
-            # calculate gaes for each policy u
+            # calculate GAE
             deltas = v_tar - v1_nograd
             gaes = torch.zeros_like(deltas)
             gaes[-1] = deltas[-1]
@@ -62,6 +65,8 @@ class PPOAgent(BaseRLAgent):
             for t in range(ep_len - 2, -1, -1):
                 next_gaes = gaes[t+1]
                 gaes[t] = deltas[t] + gamma * lam * next_gaes
+            if self.learning_params.use_adv_norm:
+                gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-5)
 
         loss_dict = {"policy_loss": 0, "value_loss": 0, "entropy": 0}
         for _ in range(self.learning_params.n_updates):
@@ -106,6 +111,8 @@ class PPOAgent(BaseRLAgent):
         return loss_dict
 
     def get_action(self, s, eval_mode=False):
+        if self.learning_params.use_state_norm:
+            s = self.state_normalizer(s, not eval_mode)
         device = self.device
         s = torch.Tensor(s).view(1, -1).to(device)
         if not eval_mode:
@@ -121,11 +128,20 @@ class PPOAgent(BaseRLAgent):
             return a.cpu().numpy().flatten()
 
     def update(self, s1, a, s2, env_reward, log_prob, done, eval_mode=False):
+        if self.learning_params.use_state_norm:
+            # when evaluating, do not update normalizer
+            s1 = self.state_normalizer(s1, not eval_mode)
+            s2 = self.state_normalizer(s2, not eval_mode)
+        if self.learning_params.use_reward_scaling:
+            env_reward = self.reward_scaler(env_reward)
+        elif self.learning_params.use_reward_norm:
+            env_reward = self.reward_normalizer(env_reward)
         if not eval_mode:
             self.buffer.add_data(s1, a, s2, env_reward, log_prob, done)
 
     def reset_status(self, task, eval_mode=False):
-        pass
+        if self.learning_params.use_reward_scaling:
+            self.reward_scaler.reset()
 
     def lr_decay(self):
         cur_steps = self.curriculum.get_current_step()

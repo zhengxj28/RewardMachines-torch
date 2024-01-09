@@ -11,10 +11,6 @@ learning_params:
   gamma: 0.99
   buffer_size: 2048 # as long as >=num_steps
   batch_size: 64  # mini-batch, 32 or 64
-  adam_eps: 0.00001
-
-  use_grad_clip: false
-  use_lr_decay: false
 
   # ppo params
   clip_rate: 0.2
@@ -23,6 +19,15 @@ learning_params:
   policy_loss_coef: 1.0
   value_loss_coef: 1.0
   entropy_loss_coef: 0.01
+
+  # ppo tricks
+  use_adv_norm: true
+  use_state_norm: true
+  use_reward_norm: false
+  use_reward_scaling: true
+  use_grad_clip: true
+  use_lr_decay: true
+  adam_eps: 0.00001
 
 
 model_params:

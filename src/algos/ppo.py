@@ -26,10 +26,6 @@ class PPOAlgo(NonMDPAlgo):
                               curriculum)
 
     def train_episode(self, task):
-        """
-        This code runs one training episode.
-            - rm_file: It is the path towards the RM machine to solve on this episode
-        """
         tester = self.tester
         curriculum = self.curriculum
         agent = self.agent
