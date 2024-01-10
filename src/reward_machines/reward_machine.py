@@ -55,24 +55,24 @@ class RewardMachine:
                         return u2
             return self.u_broken  # no transition is defined for true_props
 
-    def get_reward(self, u1, u2, s1, a, s2, eval_mode=False):
+    def get_reward(self, u1, u2, s1, a, s2, info, eval_mode=False):
         """
         Returns the reward associated to this transition.
         The extra reward given by RS is included only during training!
         """
         if self.generate_by_ltl:
-            reward = 1 if self.state2ltl[u2] == 'True' else 0
-            # if self.state2ltl[u2]=='True':
-            #     reward = 1
-            # elif self.state2ltl[u2]=='False':
-            #     reward = -1
-            # else:
-            #     reward = 0
+            # TODO: dense rewards for ltl generated rm
+            if self.state2ltl[u2]=='True':
+                reward = 1
+            elif self.state2ltl[u2]=='False':
+                reward = -1
+            else:
+                reward = -0.01
         else:
             # Getting reward from the RM
             reward = 0  # NOTE: if the agent falls from the reward machine it receives reward of zero
             if u1 in self.delta_r and u2 in self.delta_r[u1]:
-                reward += self.delta_r[u1][u2].get_reward(s1, a, s2)
+                reward += self.delta_r[u1][u2].get_reward(s1, a, s2, info)
         # Adding the reward shaping (if needed)
         rs = 0.0
         if self.use_rs and not eval_mode:
@@ -80,12 +80,12 @@ class RewardMachine:
         # Returning final reward
         return reward + rs
 
-    def get_rewards_and_next_states(self, s1, a, s2, true_props):
+    def get_rewards_and_next_states(self, s1, a, s2, info):
         rewards = []
         next_states = []
         for u1 in self.U:
-            u2 = self.get_next_state(u1, true_props)
-            rewards.append(self.get_reward(u1, u2, s1, a, s2))
+            u2 = self.get_next_state(u1, info['events'])
+            rewards.append(self.get_reward(u1, u2, s1, a, s2, info))
             next_states.append(u2)
         return rewards, next_states
 

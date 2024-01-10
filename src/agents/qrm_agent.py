@@ -70,23 +70,14 @@ class QRMAgent(BaseRLAgent, RMAgent):
             a = torch.argmax(q_value).cpu().item()
         return int(a)
 
-    def update(self, s1, a, s2, events, done, eval_mode=False):
+    def update(self, s1, a, s2, info, done, eval_mode=False):
         if not eval_mode:
-            # Getting rewards and next states for each reward machine to learn
-            rewards, next_policies = [], []
-            reward_machines = self.reward_machines
-            for j in range(len(reward_machines)):
-                j_rewards, j_next_states = reward_machines[j].get_rewards_and_next_states(s1, a, s2, events)
-                rewards.append(j_rewards)
-                next_policies.append(j_next_states)
-            # Mapping rewards and next states to specific policies in the policy bank
-            rewards = self.map_rewards(rewards)
-            next_policies = self.map_next_policies(next_policies)
+            rewards, next_policies = self.get_rewards_and_next_policies(s1, a, s2, info)
             # Adding this experience to the experience replay buffer
             self.buffer.add_data(s1, a, s2, rewards, next_policies, done)
 
         # update current rm state
-        self.update_rm_state(events, eval_mode)
+        self.update_rm_state(info['events'], eval_mode)
 
     def reset_status(self, task, eval_mode=False):
         rm_id = self.task2rm_id[task]

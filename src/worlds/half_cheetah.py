@@ -21,6 +21,12 @@ class LabellingHalfCheetahEnv:
         return next_obs, original_reward, env_done, info
 
     def get_true_propositions(self):
+        """
+        {'reward_ctrl': -0.2433708190917969,
+         'reward_run': -0.2302768738318245,
+         'x_position': -0.09633745736443508,
+         'x_velocity': -0.2302768738318245}
+        """
         events = ''
         if self.info['x_position'] < -2:
             events+='a'

@@ -118,3 +118,15 @@ class RMAgent:
         else:
             self.u = self.reward_machines[self.rm_id].get_next_state(self.u, events)
 
+    def get_rewards_and_next_policies(self, s1, a, s2, info):
+        # Getting rewards and next states for each reward machine to learn
+        rewards, next_policies = [], []
+        reward_machines = self.reward_machines
+        for j in range(len(reward_machines)):
+            j_rewards, j_next_states = reward_machines[j].get_rewards_and_next_states(s1, a, s2, info)
+            rewards.append(j_rewards)
+            next_policies.append(j_next_states)
+        # Mapping rewards and next states to specific policies in the policy bank
+        rewards = self.map_rewards(rewards)
+        next_policies = self.map_next_policies(next_policies)
+        return rewards, next_policies

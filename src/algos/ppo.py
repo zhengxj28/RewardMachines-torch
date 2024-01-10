@@ -52,7 +52,7 @@ class PPOAlgo(NonMDPAlgo):
 
             # Learning
             cur_step = curriculum.get_current_step()
-            exit_episode = done or t >= num_steps or curriculum.stop_learning()
+            exit_episode = done or t >= num_steps-1 or curriculum.stop_learning()
             if exit_episode:
                 self.loss_info = agent.learn()
                 agent.buffer.clear()  # Once learned, clear the data
@@ -69,10 +69,6 @@ class PPOAlgo(NonMDPAlgo):
             s1 = s2
             t += 1
 
-        # truncated caused by max episode steps
-        if t >= num_steps:
-            self.loss_info = agent.learn()
-            agent.buffer.clear()  # Once learned, clear the data
 
     def evaluate_episode(self, task):
         env = self.create_env(task)
@@ -83,7 +79,7 @@ class PPOAlgo(NonMDPAlgo):
         r_total = 0
         for t in range(self.tester.testing_params.num_steps):
             a = self.agent.get_action(s1, True)
-            s2, env_reward, done, infos = env.step(a)
+            s2, env_reward, done, _ = env.step(a)
             # ppo do not need to update agent while evaluating
             # self.agent.update(s1, a, s2, infos, done, True)
             r_total += env_reward

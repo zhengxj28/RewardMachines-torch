@@ -140,7 +140,8 @@ class LTLEncDQNAgent(BaseRLAgent):
             a = torch.argmax(q_value).cpu().item()
         return int(a)
 
-    def update(self, s1, a, s2, events, done, eval_mode=False):
+    def update(self, s1, a, s2, info, done, eval_mode=False):
+        events = info['events']
         # progress ltl formula
         if eval_mode:
             self.cur_ltl_eval = progress(self.cur_ltl_eval, events)

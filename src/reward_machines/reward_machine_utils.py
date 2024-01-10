@@ -37,7 +37,7 @@ def value_iteration(U, delta_u, delta_r, gamma):
             q_u2 = []
             for u2 in delta_u[u1]:
                 if delta_r[u1][u2].get_type() != "constant": raise NotImplementedError("So far, we can only computer potential-based functions for simple reward machines")
-                r = delta_r[u1][u2].get_reward(None, None, None)
+                r = delta_r[u1][u2].get_reward(None, None, None, None)
                 q_u2.append(r+gamma*V[u2])
             v_new = max(q_u2)
             V_error = max([V_error, abs(v_new-V[u1])])

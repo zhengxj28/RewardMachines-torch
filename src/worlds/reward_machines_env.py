@@ -1,10 +1,12 @@
 from src.worlds.water_world import Ball, BallAgent, WaterWorldParams, WaterWorld
 from src.worlds.craft_world import CraftWorldParams, CraftWorld
 from src.worlds.office_world import OfficeWorldParams, OfficeWorld
-from src.worlds.half_cheetah import LabellingHalfCheetahEnv
+# from src.worlds.half_cheetah import LabellingHalfCheetahEnv
+from src.worlds.wrapped_mujoco import WrappedMujoco
 from src.worlds.base_env import BaseEnv
 
 toy_game_types = ["craftworld", "waterworld", "officeworld"]
+
 
 class GameParams:
     """
@@ -14,6 +16,7 @@ class GameParams:
     def __init__(self, game_type, game_params):
         self.game_type = game_type
         self.game_params = game_params
+
 
 class RewardMachinesEnv(BaseEnv):
     def __init__(self, tester, task=None):
@@ -28,7 +31,6 @@ class RewardMachinesEnv(BaseEnv):
 
         self.env_params = env_params
 
-
         super().__init__()
         env_name = tester.game_type
         self.env_name = env_name
@@ -42,9 +44,9 @@ class RewardMachinesEnv(BaseEnv):
             self.num_features = len(self.world.get_features())
             self.num_actions = len(self.world.get_actions())
         elif env_name in ["half_cheetah"]:
-            self.world = LabellingHalfCheetahEnv()
-            self.num_features = self.world.env.observation_space.shape[0]
-            self.num_actions = self.world.env.action_space.shape[0]
+            self.world = WrappedMujoco(env_name)
+            self.num_features = self.world.observation_space.shape[0]
+            self.num_actions = self.world.action_space.shape[0]
 
         if rm is not None:
             self.rm = rm
@@ -60,8 +62,7 @@ class RewardMachinesEnv(BaseEnv):
                 self.world = OfficeWorld(self.env_params)
             return self.world.get_features()
         else:
-            return self.world.env.reset()[0]
-
+            return self.world.reset()
 
     def step(self, a):
         if self.env_name in toy_game_types:
@@ -72,18 +73,21 @@ class RewardMachinesEnv(BaseEnv):
             s1 = self.world.get_features()  # current state
             self.world.execute_action(a)  # the state of `world` is modified
             s2 = self.world.get_features()  # next state
-            events = self.world.get_true_propositions()
-            u1 = self.u
-            u2 = self.rm.get_next_state(u1, events)
-            self.u = u2
-            r = self.rm.get_reward(u1, u2, s1, a, s2, eval_mode=True)
-            done = self.rm.is_terminal_state(u2) or self.world.env_game_over
-            if r == 0: r = -0.01
+            origin_reward = 0
+            done = self.world.env_game_over
+            info = {}
         else:
-            s2, r, done, info = self.world.step(a)
+            s2, origin_reward, done, truncated, info = self.world.step(a)
+            done = done or truncated
         events = self.get_true_propositions()
-        # TODO: return info rather than events
-        return s2, r, done, events
+        u1 = self.u
+        u2 = self.rm.get_next_state(u1, events)
+        self.u = u2
+        info['events'] = events
+        rm_reward = self.rm.get_reward(u1, u2, s1, a, s2, info, eval_mode=True)
+        done = done or self.rm.is_terminal_state(u2)
+
+        return s2, rm_reward, done, info
 
     def get_true_propositions(self):
         """

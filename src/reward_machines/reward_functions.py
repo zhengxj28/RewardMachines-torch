@@ -1,11 +1,12 @@
 import math
+from abc import ABC, abstractmethod
 
-class RewardFunction:
+class RewardFunction(ABC):
     def __init__(self):
         pass
 
-    # To implement...
-    def get_reward(self, s1, a, s2):
+    @abstractmethod
+    def get_reward(self, s1, a, s2, info):
         raise NotImplementedError("To be implemented")
 
     def get_type(self):
@@ -28,6 +29,7 @@ class ConstantRewardFunction(RewardFunction):
     def compare_to(self, other):
         return self.get_type() == other.get_type() and self.c == other.c
 
-    def get_reward(self,s1, a, s2):
+    def get_reward(self,s1, a, s2, info):
         return self.c
+
 

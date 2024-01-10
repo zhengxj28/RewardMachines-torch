@@ -50,9 +50,9 @@ class PPORMAlgo(NonMDPAlgo):
             curriculum.add_step()
             a, log_prob = agent.get_action(s1)
             # do not use reward from env to learn
-            s2, env_reward, done, events = env.step(a)
+            s2, env_reward, done, info = env.step(a)
 
-            agent.update(s1, a, s2, events, log_prob, done)
+            agent.update(s1, a, s2, info, log_prob, done)
 
             # Learning
             cur_step = curriculum.get_current_step()
