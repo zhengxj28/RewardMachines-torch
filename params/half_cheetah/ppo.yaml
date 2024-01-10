@@ -23,7 +23,7 @@ learning_params:
   # ppo tricks
   use_adv_norm: true
   use_state_norm: true
-  use_reward_norm: false
+  use_reward_norm: true
   use_reward_scaling: false # scaling seems worse than norm
   use_grad_clip: true
   use_lr_decay: true

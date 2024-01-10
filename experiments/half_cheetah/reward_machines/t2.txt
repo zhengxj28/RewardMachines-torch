@@ -1,0 +1,12 @@
+0   # initial state
+(0,0,'!b',RewardControl())
+(0,1,'b',RewardControl())
+(1,1,'!c',RewardControl())
+(1,2,'c',RewardControl())
+(2,2,'!d',RewardControl())
+(2,3,'d',RewardControl())
+(3,3,'!e',RewardControl())
+(3,4,'e',RewardControl())
+(4,4,'!f',RewardControl())
+(4,5,'f',RewardControl())
+(5,5,'True',ConstantRewardFunction(0))

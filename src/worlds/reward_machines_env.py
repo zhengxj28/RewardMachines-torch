@@ -20,6 +20,7 @@ class GameParams:
 
 class RewardMachinesEnv(BaseEnv):
     def __init__(self, tester, task=None):
+        super().__init__()
         reward_machines = tester.get_reward_machines()
         if task is not None:
             task_rm_id = tester.get_reward_machine_id_from_file(task)
@@ -30,8 +31,8 @@ class RewardMachinesEnv(BaseEnv):
             rm = None
 
         self.env_params = env_params
+        self.s = None
 
-        super().__init__()
         env_name = tester.game_type
         self.env_name = env_name
         if env_name in toy_game_types:
@@ -60,9 +61,11 @@ class RewardMachinesEnv(BaseEnv):
                 self.world = WaterWorld(self.env_params)
             if self.env_name == "officeworld":
                 self.world = OfficeWorld(self.env_params)
-            return self.world.get_features()
+            self.s = self.world.get_features()
+            return self.s
         else:
-            return self.world.reset()
+            self.s = self.world.reset()
+            return self.s
 
     def step(self, a):
         if self.env_name in toy_game_types:
@@ -77,15 +80,20 @@ class RewardMachinesEnv(BaseEnv):
             done = self.world.env_game_over
             info = {}
         else:
+            s1 = self.s
             s2, origin_reward, done, truncated, info = self.world.step(a)
+            self.s = s2
             done = done or truncated
         events = self.get_true_propositions()
-        u1 = self.u
-        u2 = self.rm.get_next_state(u1, events)
-        self.u = u2
-        info['events'] = events
-        rm_reward = self.rm.get_reward(u1, u2, s1, a, s2, info, eval_mode=True)
-        done = done or self.rm.is_terminal_state(u2)
+        if self.rm is not None:
+            u1 = self.u
+            u2 = self.rm.get_next_state(u1, events)
+            self.u = u2
+            info['events'] = events
+            rm_reward = self.rm.get_reward(u1, u2, s1, a, s2, info, eval_mode=True)
+            done = done or self.rm.is_terminal_state(u2)
+        else:
+            rm_reward = origin_reward
 
         return s2, rm_reward, done, info
 
