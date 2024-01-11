@@ -31,6 +31,7 @@ learning_params:
 
 
 model_params:
+  fix_std: false
   action_bound: 1.0
   tabular_case: false
   num_hidden_layers: 3

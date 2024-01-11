@@ -69,6 +69,8 @@ class PPORMAgent(BaseRLAgent, RMAgent):
             for t in range(ep_len - 2, -1, -1):
                 next_gaes = torch.gather(gaes[t + 1, :], dim=0, index=nps[t])
                 gaes[t, :] = deltas[t, :] + gamma * lam * next_gaes
+            if self.learning_params.use_adv_norm:
+                gaes = (gaes - gaes.mean(dim=0)) / (gaes.std(dim=0) + 1e-5)
 
         loss_dict = {"policy_loss": 0, "value_loss": 0, "entropy": 0}
         for _ in range(self.learning_params.n_updates):
