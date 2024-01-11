@@ -25,13 +25,8 @@ class PPOAgent(BaseRLAgent):
         num_policies = 1
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
 
-        if learning_params.tabular_case:
-            raise ValueError("PPO algorithms is not recommended in tabular environment.")
-        #     self.actor_optim = optim.Adam(self.actor_rm_net.parameters(), lr=learning_params.lr)
-        #     self.critic_optim = optim.SGD(self.critic_rm_net.parameters(), lr=learning_params.lr)
-        else:
-            self.actor_optim = optim.Adam(self.actor_net.parameters(), lr=learning_params.lr, eps=learning_params.adam_eps)
-            self.critic_optim = optim.Adam(self.critic_net.parameters(), lr=learning_params.lr, eps=learning_params.adam_eps)
+        self.actor_optim = optim.Adam(self.actor_net.parameters(), lr=learning_params.lr, eps=learning_params.adam_eps)
+        self.critic_optim = optim.Adam(self.critic_net.parameters(), lr=learning_params.lr, eps=learning_params.adam_eps)
 
         # normalizer
         self.state_normalizer = Normalizer(shape=num_features)

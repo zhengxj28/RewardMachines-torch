@@ -3,6 +3,46 @@ import torch.nn as nn
 import torch.nn.functional as F
 from src.networks.q_network import TabularQNet, DeepQNet
 from src.networks.transformer import TransformerSyn
+from src.networks.ac_network import ActorNet, CriticNet
+
+
+class ActorRMNet(nn.Module):
+    def __init__(self, num_input, num_output, num_policies, model_params):
+        super().__init__()
+        self.actor_rm_net = nn.ModuleList(
+            [ActorNet(num_input, num_output, model_params) for _ in range(num_policies)]
+        )
+        self.num_policies = num_policies
+
+    def forward(self, state):
+        # return Q-values of all policies
+        probs = []
+        for i in range(self.num_policies):
+            probs.append(self.actor_rm_net[i](state))
+        probs = torch.stack(probs, dim=1)
+        # dims of q_values: (batch_size, num_policies, num_actions)
+        return probs
+
+    def get_dist(self, s):
+        return [self.actor_rm_net[i].get_dist(s) for i in range(self.num_policies)]
+
+
+class CriticRMNet(nn.Module):
+    def __init__(self, num_input, num_policies, model_params):
+        super().__init__()
+        self.critic_rm_net = nn.ModuleList(
+            [CriticNet(num_input, model_params) for _ in range(num_policies)]
+        )
+        self.num_policies = num_policies
+
+    def forward(self, state):
+        # return V-values of all policies
+        values = []
+        for i in range(self.num_policies):
+            values.append(self.critic_rm_net[i](state))
+        values = torch.stack(values, dim=1)
+        # dims of values: (batch_size, num_policies, 1)
+        return values
 
 
 class QRMNet(nn.Module):

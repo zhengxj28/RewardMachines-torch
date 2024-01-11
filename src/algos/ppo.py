@@ -12,7 +12,6 @@ class PPOAlgo(BaseAlgo):
 
         self.show_print = show_print
         self.use_cuda = use_cuda
-        self.loss_info = {}
 
         num_features = tester.num_features
         num_actions = tester.num_actions

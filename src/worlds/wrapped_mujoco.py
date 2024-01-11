@@ -30,17 +30,17 @@ class WrappedMujoco(gym.Wrapper):
         if self.info['x_position'] < -10:
             events+='n'
         if self.info['x_position'] < -2:
-            events+='a'
+            events+='m'
         if self.info['x_position'] > 2:
-            events+='b'
+            events+='a'
         if self.info['x_position'] > 4:
-            events+='c'
+            events+='b'
         if self.info['x_position'] > 6:
-            events+='d'
+            events+='c'
         if self.info['x_position'] > 8:
-            events+='e'
+            events+='d'
         if self.info['x_position'] > 10:
-            events+='f'
+            events+='e'
         return events
 
 

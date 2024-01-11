@@ -2,17 +2,16 @@ import random
 import time
 import wandb
 
-from src.algos.nmdp_algo import NonMDPAlgo
+from src.algos.ppo import PPOAlgo
 from src.agents.pporm_agent import PPORMAgent
 
 
-class PPORMAlgo(NonMDPAlgo):
+class PPORMAlgo(PPOAlgo):
     def __init__(self, tester, curriculum, show_print, use_cuda):
-        super().__init__(tester, curriculum)
+        super().__init__(tester, curriculum, show_print, use_cuda)
 
         self.show_print = show_print
         self.use_cuda = use_cuda
-        self.loss_info = {}
 
         num_features = tester.num_features
         num_actions = tester.num_actions
@@ -24,13 +23,10 @@ class PPORMAlgo(NonMDPAlgo):
                                 model_params,
                                 tester.get_reward_machines(),
                                 tester.task2rm_id,
-                                use_cuda)
+                                use_cuda,
+                                curriculum)
 
     def train_episode(self, task):
-        """
-        This code runs one training episode.
-            - rm_file: It is the path towards the RM machine to solve on this episode
-        """
         tester = self.tester
         curriculum = self.curriculum
         agent = self.agent
@@ -46,7 +42,8 @@ class PPORMAlgo(NonMDPAlgo):
 
         # Starting interaction with the environment
         num_steps = testing_params.num_steps
-        for t in range(num_steps):
+        t = 0
+        while t < num_steps:
             curriculum.add_step()
             a, log_prob = agent.get_action(s1)
             # do not use reward from env to learn
@@ -56,7 +53,8 @@ class PPORMAlgo(NonMDPAlgo):
 
             # Learning
             cur_step = curriculum.get_current_step()
-            if agent.buffer.is_full() or done:
+            exit_episode = done or t >= num_steps-1 or curriculum.stop_learning()
+            if exit_episode:
                 self.loss_info = agent.learn()
                 agent.buffer.clear()  # Once learned, clear the data
 
@@ -65,8 +63,9 @@ class PPORMAlgo(NonMDPAlgo):
                 self.evaluate(cur_step)
 
             # Restarting the environment (Game Over)
-            if done or curriculum.stop_learning():
+            if exit_episode:
                 break
 
             # Moving to the next state
             s1 = s2
+            t += 1
