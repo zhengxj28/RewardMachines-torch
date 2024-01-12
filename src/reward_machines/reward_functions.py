@@ -34,7 +34,7 @@ class ConstantRewardFunction(RewardFunction):
     def get_reward(self, s1, a, s2, info):
         return self.c
 
-class RewardControl(RewardFunction):
+class RewardForward(RewardFunction):
     def __init__(self, direction=1):
         super().__init__()
         self.direction = direction
@@ -47,3 +47,16 @@ class RewardControl(RewardFunction):
 
     def get_reward(self, s1, a, s2, info):
         return self.direction*info['reward_run']+info['reward_ctrl']
+
+class RewardControl(RewardFunction):
+    def __init__(self):
+        super().__init__()
+
+    def get_type(self):
+        return "dense"
+
+    def compare_to(self, other):
+        return False
+
+    def get_reward(self, s1, a, s2, info):
+        return info['reward_ctrl']

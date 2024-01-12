@@ -1,0 +1,6 @@
+0   # initial state
+(0,0,'!a',RewardControl())
+(0,1,'a',RewardControl())
+(1,1,'!m',RewardControl())
+(1,2,'m',ConstantRewardFunction(1000))
+(2,2,'True',ConstantRewardFunction(0))
