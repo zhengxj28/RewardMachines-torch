@@ -25,7 +25,7 @@ class PPORMAgent(BaseRLAgent, RMAgent):
 
         num_policies = self.num_policies  # already defined in RMAgent
         self.actor_rm_net = ActorRMNet(num_features, num_actions, num_policies, model_params).to(device)
-        self.critic_rm_net = CriticRMNet(num_features, num_policies, model_params).to(device)
+        self.critic_rm_net = CriticRMNet(num_features, 1, num_policies, model_params).to(device)
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
 
         if learning_params.tabular_case:

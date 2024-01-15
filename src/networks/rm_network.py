@@ -18,7 +18,7 @@ class ActorRMNet(nn.Module):
         # return Q-values of all policies
         probs = []
         for i in range(self.num_policies):
-            probs.append(self.actor_rm_net[i](state))
+            probs.append(self.actor_rm_net[i](state)[0])
         probs = torch.stack(probs, dim=1)
         # dims of q_values: (batch_size, num_policies, num_actions)
         return probs
@@ -28,10 +28,10 @@ class ActorRMNet(nn.Module):
 
 
 class CriticRMNet(nn.Module):
-    def __init__(self, num_input, num_policies, model_params):
+    def __init__(self, num_input, num_output, num_policies, model_params):
         super().__init__()
         self.critic_rm_net = nn.ModuleList(
-            [CriticNet(num_input, model_params) for _ in range(num_policies)]
+            [CriticNet(num_input, num_output, model_params) for _ in range(num_policies)]
         )
         self.num_policies = num_policies
 

@@ -21,7 +21,7 @@ class PPOAgent(BaseRLAgent):
         device = self.device
 
         self.actor_net = ActorNet(num_features, num_actions, model_params).to(device)
-        self.critic_net = CriticNet(num_features, model_params).to(device)
+        self.critic_net = CriticNet(num_features, 1, model_params).to(device)
         num_policies = 1
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, learning_params, device)
 
@@ -119,7 +119,7 @@ class PPOAgent(BaseRLAgent):
             return a.cpu().numpy().flatten(), log_prob
         else:
             with torch.no_grad():
-                a = self.actor_net(s)
+                a, _ = self.actor_net(s)
             return a.cpu().numpy().flatten()
 
     def update(self, s1, a, s2, env_reward, log_prob, done, eval_mode=False):

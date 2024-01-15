@@ -31,9 +31,11 @@ learning_params:
 
 
 model_params:
-  fix_std: false
+  std_module: "parameter" # "fixed", "parameter" or "layer"
+  init_std: 1.0
   action_bound: 1.0
   tabular_case: false
   num_hidden_layers: 3
   num_neurons: 64
+  activation: "tanh"
 
