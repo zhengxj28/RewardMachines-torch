@@ -36,6 +36,9 @@ def run_experiment(args, tester, curriculum):
     elif alg_name == "pporm":
         from src.algos.pporm import PPORMAlgo
         algo = PPORMAlgo(tester, curriculum, show_print, use_cuda)
+    elif alg_name == "sac":
+        from src.algos.sac import SACAlgo
+        algo = SACAlgo(tester, curriculum, show_print, use_cuda)
     else:
         raise NotImplementedError("Algorithm:" + alg_name)
 

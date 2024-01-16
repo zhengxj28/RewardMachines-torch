@@ -1,0 +1,33 @@
+testing_params:
+  test: true
+  test_freq: 1000  #10000
+  num_steps: 1000
+
+learning_params:
+  total_units: 1000
+  step_unit: 1000
+  lr: 0.0003  # 5e-5 seems to be better than 1e-4
+  epsilon: 0.1
+  gamma: 0.99
+  buffer_size: 1000000
+  train_freq: 1
+  batch_size: 256
+  target_network_update_freq: 1  # softly update each step
+  learning_starts: 25000  # 25000
+
+  use_state_norm: false
+  use_reward_norm: false
+  use_reward_scaling: false # scaling seems worse than norm
+
+  # sac params
+  tau: 0.005  # softly update target network
+
+model_params:
+  std_module: "layer" # "fixed", "parameter" or "layer"
+  action_bound: 1.0
+  num_hidden_layers: 3
+  num_neurons: 256
+  activation: "relu"
+
+
+

@@ -24,11 +24,11 @@ class ActorNet(nn.Module):
             nn.init.orthogonal_(layer.weight, gain=1.0 if i<len(self.layers)-1 else 0.01)
             nn.init.constant_(layer.bias, val=0)
 
-        init_log_std = torch.log(model_params.init_std*torch.ones(1, num_output))
+
         if model_params.std_module=="fixed":
-            self.log_std = init_log_std
+            self.log_std = torch.log(model_params.init_std * torch.ones(1, num_output))
         elif model_params.std_module=="parameter":
-            self.log_std = nn.Parameter(init_log_std)
+            self.log_std = nn.Parameter(torch.log(model_params.init_std * torch.ones(1, num_output)))
         elif model_params.std_module=="layer":
             self.log_std_layer = nn.Linear(num_neurons, num_output)
         else:
