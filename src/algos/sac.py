@@ -19,10 +19,13 @@ class SACAlgo(BaseAlgo):
 
         num_features = tester.num_features
         num_actions = tester.num_actions
+        action_space = tester.action_space
 
         learning_params = tester.learning_params
         model_params = tester.model_params
-        self.agent = SACAgent(num_features, num_actions,
+        self.agent = SACAgent(num_features,
+                              num_actions,
+                              action_space,
                               learning_params,
                               model_params,
                               use_cuda)
@@ -47,13 +50,13 @@ class SACAlgo(BaseAlgo):
         num_steps = testing_params.num_steps
         for t in range(num_steps):
             curriculum.add_step()
-            a = agent.get_action(s1)
+            cur_step = curriculum.get_current_step()
+            a = agent.get_action(s1, choose_randomly=(cur_step < learning_params.learning_starts))
             s2, env_reward, done, _ = env.step(a)
 
             agent.update(s1, a, s2, env_reward, done)
 
             # Learning
-            cur_step = curriculum.get_current_step()
             if cur_step >= learning_params.learning_starts:
                 if cur_step % learning_params.train_freq == 0:
                     self.loss_info = agent.learn()

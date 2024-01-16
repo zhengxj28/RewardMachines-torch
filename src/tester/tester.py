@@ -71,6 +71,7 @@ class Tester:
         env_aux = RewardMachinesEnv(self, self.tasks[0])
         self.num_features = env_aux.num_features
         self.num_actions = env_aux.num_actions
+        self.action_space = env_aux.action_space
 
     # def get_world_name(self):
     #     return self.game_type.replace("world", "")

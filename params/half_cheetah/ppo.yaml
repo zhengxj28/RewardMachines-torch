@@ -38,4 +38,5 @@ model_params:
   num_hidden_layers: 3
   num_neurons: 64
   activation: "tanh"
+  orthogonal_init: true
 

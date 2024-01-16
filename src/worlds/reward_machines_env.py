@@ -44,10 +44,12 @@ class RewardMachinesEnv(BaseEnv):
                 self.world = OfficeWorld(env_params)
             self.num_features = len(self.world.get_features())
             self.num_actions = len(self.world.get_actions())
+            self.action_space = None
         elif env_name in ["half_cheetah"]:
             self.world = WrappedMujoco(env_name)
             self.num_features = self.world.observation_space.shape[0]
             self.num_actions = self.world.action_space.shape[0]
+            self.action_space = self.world.action_space
 
         if rm is not None:
             self.rm = rm

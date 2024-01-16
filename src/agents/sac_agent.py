@@ -9,10 +9,11 @@ from src.agents.base_rl_agent import BaseRLAgent
 from src.common.normalizer import Normalizer, RewardScaler
 
 class SACAgent(BaseRLAgent):
-    def __init__(self, num_features, num_actions, learning_params, model_params, use_cuda):
+    def __init__(self, num_features, num_actions, action_space, learning_params, model_params, use_cuda):
         super().__init__(use_cuda)
         self.num_features = num_features
         self.num_actions = num_actions
+        self.action_space = action_space
         self.learning_params = learning_params
         self.action_bound = model_params.action_bound
 
@@ -36,25 +37,27 @@ class SACAgent(BaseRLAgent):
         # use either reward_normalizer or reward_scaler, not both
         assert not (self.learning_params.use_reward_norm and self.learning_params.use_reward_scaling)
 
-        # adaptive entropy coefficient
-        self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
-        self.alpha = torch.exp(self.log_alpha)
-        # learn log_alpha instead of alpha to make sure alpha>0
-        self.alpha_optim = optim.Adam([self.log_alpha], lr=learning_params.lr)
-        self.target_entropy = -num_actions
+        if learning_params.fix_alpha:
+            self.alpha = 0.2
+        else:
+            # adaptive entropy coefficient
+            self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
+            self.alpha = torch.exp(self.log_alpha)
+            # learn log_alpha instead of alpha to make sure alpha>0
+            self.alpha_optim = optim.Adam([self.log_alpha], lr=learning_params.lr)
+            self.target_entropy = -num_actions
 
     def learn(self):
         s1, a1, s2, r, done = self.buffer.sample(self.learning_params.batch_size)
+        gamma = self.learning_params.gamma
 
         with torch.no_grad():
-            dist2 = self.actor_net.get_dist(s2)
-            a2 = dist2.rsample()
-            log_pi2 = self.logpi_spinning(dist2, a2)
-            s2_a2 = torch.cat([s2,a2],1)
+            a2, log_pi2, _ = self.actor_net.sample_action_log_pi(s2)
+            s2_a2 = torch.cat([s2, a2], 1)
             tar_Q1 = self.tar_critic_net1(s2_a2)
             tar_Q2 = self.tar_critic_net2(s2_a2)
-            tar_Q_soft = torch.min(tar_Q1, tar_Q2)-self.alpha*log_pi2
-        s1_a1 = torch.cat([s1,a1],1)
+            tar_Q_soft = r + gamma * (1-done) * (torch.min(tar_Q1, tar_Q2) - self.alpha*log_pi2)
+        s1_a1 = torch.cat([s1, a1], 1)
         Q1 = self.critic_net1(s1_a1)
         Q2 = self.critic_net1(s1_a1)
 
@@ -72,9 +75,7 @@ class SACAgent(BaseRLAgent):
         for params in self.critic_net2.parameters():
             params.requires_grad = False
 
-        dist1 = self.actor_net.get_dist(s1)
-        a1_new = dist1.rsample()
-        log_pi1 = self.logpi_spinning(dist1, a1_new)
+        a1_new, log_pi1, cur_entropy = self.actor_net.sample_action_log_pi(s1)
         s1_a1_new = torch.cat([s1, a1_new], 1)
         Q1_nograd = self.critic_net1(s1_a1_new)
         Q2_nograd = self.critic_net2(s1_a1_new)
@@ -90,34 +91,42 @@ class SACAgent(BaseRLAgent):
         for params in self.critic_net2.parameters():
             params.requires_grad = True
 
-        # update alpha
-        alpha_loss = -torch.mean(torch.exp(self.log_alpha)*(log_pi1.detach()+self.target_entropy), dim=0)
-        self.alpha_optim.zero_grad()
-        alpha_loss.backward()
-        self.alpha_optim.step()
-        self.alpha = torch.exp(self.log_alpha)
+        if not self.learning_params.fix_alpha:
+            # update adaptive alpha
+            alpha_loss = -torch.mean(torch.exp(self.log_alpha) * (log_pi1.detach() + self.target_entropy), dim=0)
+            self.alpha_optim.zero_grad()
+            alpha_loss.backward()
+            self.alpha_optim.step()
+            self.alpha = torch.exp(self.log_alpha)
+            current_alpha = self.alpha.cpu().item()
+        else:
+            current_alpha = self.alpha
 
         return {
             "value_loss": value_loss.cpu().item(),
             "policy_loss": policy_loss.cpu().item(),
-            "entropy": torch.mean(dist1.entropy()).cpu().item(),
-            "alpha": self.alpha.cpu().item()
+            "entropy": torch.mean(cur_entropy).cpu().item(),
+            "alpha": current_alpha
         }
 
     def get_action(self, s, eval_mode=False, choose_randomly=False):
-        # TODO: action_space.sample() when choose_randomly=True
+        if choose_randomly:
+            return self.action_space.sample()
         if self.learning_params.use_state_norm:
             s = self.state_normalizer(s, False)
         device = self.device
         s = torch.Tensor(s).view(1, -1).to(device)
         if not eval_mode:
             with torch.no_grad():
-                dist = self.actor_net.get_dist(s)
-                a = dist.sample()
-                a = torch.clamp(a, -self.action_bound, self.action_bound)
+                a, _, _ = self.actor_net.sample_action_log_pi(s)
+                # dist = self.actor_net.get_dist(s)
+                # a = dist.sample()
+                # a = torch.clamp(a, -self.action_bound, self.action_bound)
         else:
             with torch.no_grad():
                 a, _ = self.actor_net(s)
+                if self.actor_net.tanh_after_sample:
+                    a = nn.Tanh()(a) * self.action_bound
         return a.cpu().numpy().flatten()
 
     def update(self, s1, a, s2, env_reward, done, eval_mode=False):
@@ -145,10 +154,6 @@ class SACAgent(BaseRLAgent):
         for param, target_param in zip(net1.parameters(), net2.parameters()):
             target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-    def logpi_spinning(self, dist, a):
-        log_pi = dist.log_prob(a).sum(dim=1, keepdim=True)
-        log_pi -= (2 * (np.log(2) - a - F.softplus(-2 * a))).sum(dim=1, keepdim=True)
-        return log_pi
 
 class ReplayBuffer(object):
     def __init__(self, num_features, num_actions, learning_params, device):
