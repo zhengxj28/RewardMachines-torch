@@ -2,11 +2,11 @@ import random
 import time
 import wandb
 
-from src.algos.nmdp_algo import NonMDPAlgo
+from src.algos.base_algo import BaseAlgo
 from src.agents.dqn_agent import DQNAgent
 
 
-class DQNAlgo(NonMDPAlgo):
+class DQNAlgo(BaseAlgo):
     def __init__(self, tester, curriculum, show_print, use_cuda):
         super().__init__(tester, curriculum)
 

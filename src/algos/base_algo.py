@@ -5,6 +5,7 @@ from src.worlds.reward_machines_env import RewardMachinesEnv
 import wandb
 import time
 
+
 class BaseAlgo(ABC):
     def __init__(self, tester, curriculum, *args):
         self.tester = tester
@@ -23,6 +24,7 @@ class BaseAlgo(ABC):
     def create_env(self, task):
         env = RewardMachinesEnv(self.tester, task)
         return env
+
     @abstractmethod
     def train_episode(self, *args):
         pass
@@ -54,11 +56,11 @@ class BaseAlgo(ABC):
 
         log_reward = {"total": sum(rewards_of_each_task)}
         log_steps = {"total": sum(testing_steps_of_each_task)}
-        log_avg_reward = {"total": sum(rewards_of_each_task)/sum(testing_steps_of_each_task)}
+        log_avg_reward = {"total": sum(rewards_of_each_task) / sum(testing_steps_of_each_task)}
         for i in range(len(rewards_of_each_task)):
             log_reward["task%d" % i] = rewards_of_each_task[i]
             log_steps["task%d" % i] = testing_steps_of_each_task[i]
-            log_avg_reward["task%d" % i] = rewards_of_each_task[i]/testing_steps_of_each_task[i]
+            log_avg_reward["task%d" % i] = rewards_of_each_task[i] / testing_steps_of_each_task[i]
 
         for key, value in self.loss_info.items():
             print("%s: %.4f" % (key, value), end='\t')
@@ -70,7 +72,6 @@ class BaseAlgo(ABC):
                        "avg_reward": log_avg_reward,
                        "loss": self.loss_info,
                        "training_time": training_time})
-
 
     def evaluate_episode(self, task):
         env = self.create_env(task)
@@ -84,13 +85,11 @@ class BaseAlgo(ABC):
             testing_steps += 1
             a = self.agent.get_action(s1, True)
             s2, env_reward, done, infos = env.step(a)
-            self.agent.update(s1, a, s2, infos, done, True)
             r_total += env_reward
             # Restarting the environment (Game Over)
             if done:
                 break
             # Moving to the next state
             s1 = s2
-
 
         return r_total, testing_steps
