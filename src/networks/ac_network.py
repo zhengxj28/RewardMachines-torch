@@ -66,9 +66,12 @@ class ActorNet(nn.Module):
         dist = torch.distributions.Normal(mean, std)
         return dist
 
-    def sample_action_log_pi(self, s):
+    def sample_action_log_pi(self, s, eval_mode):
         dist = self.get_dist(s)
-        a = dist.rsample()
+        if eval_mode:
+            a = dist.mean
+        else:
+            a = dist.rsample()
         entropy = dist.entropy()
         log_pi = dist.log_prob(a).sum(dim=1, keepdim=True)
         log_pi -= (2 * (np.log(2) - a - F.softplus(-2 * a))).sum(dim=1, keepdim=True)
@@ -110,5 +113,57 @@ class CriticNet(nn.Module):
             x = self.layers[i](x)
             x = self.activation(x)
         x = self.layers[self.num_hidden_layers-1](x)
-        # output the value V(s)
+        # output the value V(s) or Q([s,a])
         return x
+
+class ActorNetNormalDist(nn.Module):
+    def __init__(self, num_input, num_output, model_params):
+        super().__init__()
+        self.layers = nn.ModuleList()
+        num_neurons = model_params.num_neurons
+        self.num_hidden_layers = model_params.num_hidden_layers
+        self.action_bound = model_params.action_bound
+
+        for i in range(self.num_hidden_layers):
+            if i == 0:
+                self.layers.append(nn.Linear(num_input, num_neurons))
+            elif i < self.num_hidden_layers - 1:
+                self.layers.append(nn.Linear(num_neurons, num_neurons))
+            else:
+                self.layers.append(nn.Linear(num_neurons, num_output))
+
+        self.log_std_layer = nn.Linear(num_neurons, num_output)
+
+        # activation layer
+        if model_params.activation=="relu":
+            self.activation = nn.ReLU()
+        elif model_params.activation=="tanh":
+            self.activation = nn.Tanh()
+        else:
+            raise NotImplementedError(f"Activation layer {model_params.activation} not supported.")
+
+    def forward(self, x, deterministic=False, with_logprob=True):
+        for i in range(self.num_hidden_layers-1):
+            x = self.layers[i](x)
+            x = self.activation(x)
+        mean = self.layers[self.num_hidden_layers-1](x)
+        log_std = self.log_std_layer(x)
+        log_std = torch.clamp(log_std, -20, 2)
+        std = torch.exp(log_std)
+
+        dist = torch.distributions.Normal(mean, std)  # Generate a Gaussian distribution
+        current_entropy = dist.entropy()
+        if deterministic:  # When evaluating，we use the deterministic policy
+            a = mean
+        else:
+            a = dist.rsample()  # reparameterization trick: mean+std*N(0,1)
+
+        if with_logprob:  # The method refers to Open AI Spinning up, which is more stable.
+            log_pi = dist.log_prob(a).sum(dim=1, keepdim=True)
+            log_pi -= (2 * (np.log(2) - a - F.softplus(-2 * a))).sum(dim=1, keepdim=True)
+        else:
+            log_pi = None
+
+        a = self.action_bound * torch.tanh(a)  # Use tanh to compress the unbounded Gaussian distribution into a bounded action interval.
+
+        return a, log_pi, current_entropy

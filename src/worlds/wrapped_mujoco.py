@@ -16,6 +16,7 @@ class WrappedMujoco(gym.Wrapper):
 
     def reset(self, seed=0):
         s0 = self.env.reset(seed=seed)[0]
+        self.env.action_space.seed(seed)
         self.info = {}
         return s0
 
