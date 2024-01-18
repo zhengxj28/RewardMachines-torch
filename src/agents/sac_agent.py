@@ -123,7 +123,7 @@ class SACAgent(BaseRLAgent):
             s = self.state_normalizer(s, False)
         device = self.device
         s = torch.Tensor(s).view(1, -1).to(device)
-        a, _, _ = self.actor_net(s, eval_mode, False)
+        a, _, _ = self.actor_net(s, eval_mode)
         return a.cpu().data.numpy().flatten()
 
     def update(self, s1, a, s2, env_reward, done, eval_mode=False):

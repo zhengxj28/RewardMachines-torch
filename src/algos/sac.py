@@ -12,10 +12,7 @@ class SACAlgo(BaseAlgo):
 
         self.show_print = show_print
         self.use_cuda = use_cuda
-        self.loss_info = {"value_loss": 0,
-                          "policy_loss": 0,
-                          "entropy": 0,
-                          "alpha": 0}
+        self.loss_info = {}
 
         num_features = tester.num_features
         num_actions = tester.num_actions

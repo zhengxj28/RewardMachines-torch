@@ -142,7 +142,7 @@ class ActorNetNormalDist(nn.Module):
         else:
             raise NotImplementedError(f"Activation layer {model_params.activation} not supported.")
 
-    def forward(self, x, deterministic=False, with_logprob=True):
+    def forward(self, x, deterministic=False):
         for i in range(self.num_hidden_layers-1):
             x = self.layers[i](x)
             x = self.activation(x)
@@ -158,11 +158,8 @@ class ActorNetNormalDist(nn.Module):
         else:
             a = dist.rsample()  # reparameterization trick: mean+std*N(0,1)
 
-        if with_logprob:  # The method refers to Open AI Spinning up, which is more stable.
-            log_pi = dist.log_prob(a).sum(dim=1, keepdim=True)
-            log_pi -= (2 * (np.log(2) - a - F.softplus(-2 * a))).sum(dim=1, keepdim=True)
-        else:
-            log_pi = None
+        log_pi = dist.log_prob(a).sum(dim=1, keepdim=True)
+        log_pi -= (2 * (np.log(2) - a - F.softplus(-2 * a))).sum(dim=1, keepdim=True)
 
         a = self.action_bound * torch.tanh(a)  # Use tanh to compress the unbounded Gaussian distribution into a bounded action interval.
 
