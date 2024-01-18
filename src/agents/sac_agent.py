@@ -38,7 +38,7 @@ class SACAgent(BaseRLAgent):
         assert not (self.learning_params.use_reward_norm and self.learning_params.use_reward_scaling)
 
         if learning_params.fix_alpha:
-            self.alpha = 0.2
+            self.alpha = learning_params.init_fixed_alpha
         else:
             # adaptive entropy coefficient
             self.target_entropy = -num_actions

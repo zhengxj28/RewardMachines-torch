@@ -123,7 +123,10 @@ class PPORMAgent(BaseRLAgent, RMAgent):
             s = self.state_normalizer(s, False)
         device = self.device
         s = torch.Tensor(s).view(1, -1).to(device)
-        policy_id = self.state2policy[(self.rm_id, self.u)]
+        if eval_mode:
+            policy_id = self.state2policy[(self.rm_id_eval, self.u_eval)]
+        else:
+            policy_id = self.state2policy[(self.rm_id, self.u)]
         if not eval_mode:
             with torch.no_grad():
                 dist_all = self.actor_rm_net.get_dist(s)
