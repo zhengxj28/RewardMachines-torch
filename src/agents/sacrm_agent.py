@@ -44,19 +44,24 @@ class SACRMAgent(BaseRLAgent, RMAgent):
         assert not (self.learning_params.use_reward_norm and self.learning_params.use_reward_scaling)
 
         if learning_params.fix_alpha:
-            self.alpha = learning_params.init_fixed_alpha
+            self.alpha = learning_params.init_fixed_alpha * torch.ones(self.num_policies)
         else:
             # adaptive entropy coefficient
             self.target_entropy = -num_actions
-            self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
+            self.log_alpha = torch.zeros(self.num_policies, requires_grad=True, device=device)
             self.alpha = self.log_alpha.exp()
             # learn log_alpha instead of alpha to make sure alpha>0
             self.alpha_optim = optim.Adam([self.log_alpha], lr=learning_params.lr)
 
     def learn(self):
-        s1, a1, s2, rewards, nps, _ = self.buffer.sample(self.learning_params.batch_size)
-        done = torch.zeros_like(nps, device=self.device)
-        done[nps == 0] = 1  # NPs[i]==0 means terminal state
+        s1, a1, s2, rewards, nps, env_done, u1, u2 = self.buffer.sample(self.learning_params.batch_size)
+        rm_done = torch.zeros_like(nps, device=self.device)
+        rm_done[nps == 0] = 1  # NPs[i]==0 means terminal state
+        ############# debug tricks
+        batch_size = s1.shape[0]
+        ind = torch.LongTensor(range(self.num_policies)).to(self.device).expand(batch_size, -1)
+        rm_done[nps!=ind] = 1
+        ############# debug tricks
         gamma = self.learning_params.gamma
         nps_dim3 = nps.unsqueeze(-1).expand(-1, -1, self.num_actions)
 
@@ -66,7 +71,7 @@ class SACRMAgent(BaseRLAgent, RMAgent):
             # name `_u1` means tensor[:,i,:] is calculated by policy i
             # name `_u2` means tensor[:,i,:] is calculated by policy nps[:,i]
             a2_u1, log_pi2_u1, _ = self.actor_rm_net(s2)
-            # a2_u2[batch, u, :] = a2_u1[batch, nps[batch, u], :]
+            # note that a2_u2[batch, u, :] = a2_u1[batch, nps[batch, u], :]
             # a2_u2 = torch.gather(a2_u1, 1, nps_dim3)
             log_pi2_u1 = log_pi2_u1.squeeze(-1)
             log_pi2_u2 = torch.gather(log_pi2_u1, 1, nps)
@@ -75,7 +80,6 @@ class SACRMAgent(BaseRLAgent, RMAgent):
             all_target_Q2 = self.tar_critic_rm_net2.get_Q_by_all_action(s2, a2_u1).squeeze(-1)
 
         # Compute current Q
-        # TODO: a1 sampled from unknown policy
         all_current_Q1 = self.critic_rm_net1(torch.cat([s1, a1], 1)).squeeze(-1)
         all_current_Q2 = self.critic_rm_net2(torch.cat([s1, a1], 1)).squeeze(-1)
 
@@ -86,12 +90,12 @@ class SACRMAgent(BaseRLAgent, RMAgent):
                 # we use Q(s2,u2,a2) as final target_Q, and u2=nps[u1]
                 target_Q1 = torch.gather(all_target_Q1, 1, nps)
                 target_Q2 = torch.gather(all_target_Q2, 1, nps)
-                target_Q_soft = rewards[:, i] + gamma * (1 - done[:, i]) * (
-                            torch.min(target_Q1[:, i], target_Q2[:, i]) - self.alpha * log_pi2)
+                target_Q_soft = rewards[:, i] + gamma * (1 - rm_done[:, i]) * (
+                        torch.min(target_Q1[:, i], target_Q2[:, i]) - self.alpha[i] * log_pi2)
                 target_Q_soft = target_Q_soft.squeeze(-1)
             # Compute critic loss
             critic_loss += F.mse_loss(all_current_Q1[:, i], target_Q_soft) + F.mse_loss(all_current_Q2[:, i],
-                                                                                         target_Q_soft)
+                                                                                        target_Q_soft)
         # Optimize the critic
         self.critic_optim1.zero_grad()
         self.critic_optim2.zero_grad()
@@ -112,7 +116,7 @@ class SACRMAgent(BaseRLAgent, RMAgent):
         all_Q2_nograd = self.critic_rm_net2.get_Q_by_all_action(s1, all_a1_new).squeeze(-1)
         for i in range(self.num_policies):
             log_pi1 = all_log_pi1[:, i].squeeze(-1)
-            Q_soft = torch.min(all_Q1_nograd[:, i], all_Q2_nograd[:, i]) - self.alpha * log_pi1
+            Q_soft = torch.min(all_Q1_nograd[:, i], all_Q2_nograd[:, i]) - self.alpha[i] * log_pi1
             actor_loss += -Q_soft.mean()
 
         # Optimize the actor
@@ -128,26 +132,25 @@ class SACRMAgent(BaseRLAgent, RMAgent):
 
         # Update alpha
         if not self.learning_params.fix_alpha:
-            pass
-            # TODO: adaptive alpha
             # We learn log_alpha instead of alpha to ensure that alpha=exp(log_alpha)>0
-            # alpha_loss = -(self.log_alpha.exp() * (log_pi1 + self.target_entropy).detach()).mean()
-            # self.alpha_optim.zero_grad()
-            # alpha_loss.backward()
-            # self.alpha_optim.step()
-            # self.alpha = self.log_alpha.exp()
-            # report_alpha_loss = alpha_loss.cpu().item()
-            # report_alpha = self.alpha.cpu().item()
+            alpha_loss = torch.Tensor([0.0]).to(self.device)
+            for i in range(self.num_policies):
+                log_pi1 = all_log_pi1[:, i].squeeze(-1)
+                alpha_loss += -(self.log_alpha[i].exp() * (log_pi1 + self.target_entropy).detach()).mean()
+            self.alpha_optim.zero_grad()
+            alpha_loss.backward()
+            self.alpha_optim.step()
+            self.alpha = self.log_alpha.exp()
+            report_alpha_loss = alpha_loss.cpu().item()/self.num_policies
         else:
             report_alpha_loss = 0
-            report_alpha = self.alpha
 
         return {
             "value_loss": critic_loss.cpu().item() / self.num_policies,
             "policy_loss": actor_loss.cpu().item() / self.num_policies,
             "entropy": all_cur_entropy.mean().cpu().item(),
             "alpha_loss": report_alpha_loss,
-            "alpha": report_alpha
+            "alpha": self.alpha.mean().cpu().item()
         }
 
     def get_action(self, s, eval_mode=False, choose_randomly=False):
@@ -176,8 +179,11 @@ class SACRMAgent(BaseRLAgent, RMAgent):
         #     env_reward = self.reward_scaler(env_reward)
         # elif self.learning_params.use_reward_norm:
         #     env_reward = self.reward_normalizer(env_reward, not eval_mode)
+        u1 = self.u
+        self.update_rm_state(info['events'], eval_mode)
+        u2 = self.u
         if not eval_mode:
-            self.buffer.add_data(s1, a, s2, rewards, next_policies)
+            self.buffer.add_data(s1, a, s2, rewards, next_policies, done, u1, u2)
 
     def update_target_network(self):
         self.soft_update_target_net(self.critic_rm_net1, self.tar_critic_rm_net1)
@@ -205,11 +211,14 @@ class ReplayBuffer(object):
         self.S2 = torch.empty([maxsize, num_features], device=device)
         self.Rs = torch.empty([maxsize, num_policies], device=device)
         self.NPs = torch.empty([maxsize, num_policies], dtype=torch.long, device=device)
-        # self.Done = torch.empty([maxsize, 1], dtype=torch.long, device=device)
+        self.Done = torch.empty([maxsize, 1], dtype=torch.long, device=device)
+        # store the history RM state
+        self.U1 = torch.empty([maxsize, 1], dtype=torch.long, device=device)
+        self.U2 = torch.empty([maxsize, 1], dtype=torch.long, device=device)
         self.index = 0
         self.num_data = 0  # truly stored datas
 
-    def add_data(self, s1, a, s2, rewards, next_policies):
+    def add_data(self, s1, a, s2, rewards, next_policies, done, u1, u2):
         # `rewards[i]` is the reward of policy `i`
         idx = self.index
         self.S1[idx] = torch.Tensor(s1)
@@ -217,7 +226,9 @@ class ReplayBuffer(object):
         self.S2[idx] = torch.Tensor(s2)
         self.Rs[idx] = torch.Tensor(rewards)
         self.NPs[idx] = torch.LongTensor(next_policies)
-        # self.Done[idx] = torch.LongTensor([env_done])
+        self.Done[idx] = torch.LongTensor([done])
+        self.U1[idx] = torch.LongTensor([u1])
+        self.U2[idx] = torch.LongTensor([u2])
         self.index = (self.index + 1) % self.maxsize
         self.num_data = min(self.num_data + 1, self.maxsize)
 
@@ -229,5 +240,7 @@ class ReplayBuffer(object):
         s2 = self.S2[index]
         rs = self.Rs[index]
         nps = self.NPs[index]
-        # env_done = self.Done[index]
-        return s1, a, s2, rs, nps, None
+        done = self.Done[index]
+        u1 = self.U1[index]
+        u2 = self.U2[index]
+        return s1, a, s2, rs, nps, done, u1, u2

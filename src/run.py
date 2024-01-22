@@ -135,6 +135,9 @@ if __name__ == "__main__":
                 name=alg_name,
                 config=wandb_config
             )
+        print("*" * 10, "Task Files", "*" * 10)
+        for task in tester.tasks:
+            print(task)
         print("*" * 10, "seed:", seed, "*" * 10)
         print("alg_name:", alg_name)
         print(params)

@@ -21,8 +21,8 @@ learning_params:
 
   # sac params
   tau: 0.005  # softly update target network
-  fix_alpha: true
-  init_fixed_alpha: 0 # 0.2
+  fix_alpha: false
+  init_fixed_alpha: 0.2 # 0.2
 
 model_params:
   action_bound: 1.0
