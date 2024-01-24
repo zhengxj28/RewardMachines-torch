@@ -47,6 +47,11 @@ class PPORMAgent(BaseRLAgent, RMAgent):
         s1, a, s2, rs, nps, old_log_prob, _ = self.buffer.sample()
         done = torch.zeros_like(nps, device=self.device)
         done[nps == 0] = 1  # NPs[i]==0 means terminal state
+        ############# debug tricks
+        batch_size = s1.shape[0]
+        ind = torch.LongTensor(range(self.num_policies)).to(self.device).expand(batch_size, -1)
+        done[nps!=ind] = 1
+        ############# debug tricks
         gamma = self.learning_params.gamma
         lam = self.learning_params.lam
         clip_rate = self.learning_params.clip_rate
