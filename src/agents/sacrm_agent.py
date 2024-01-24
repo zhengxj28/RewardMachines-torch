@@ -58,9 +58,9 @@ class SACRMAgent(BaseRLAgent, RMAgent):
         rm_done = torch.zeros_like(nps, device=self.device)
         rm_done[nps == 0] = 1  # NPs[i]==0 means terminal state
         ############# debug tricks
-        batch_size = s1.shape[0]
-        ind = torch.LongTensor(range(self.num_policies)).to(self.device).expand(batch_size, -1)
-        rm_done[nps!=ind] = 1
+        # batch_size = s1.shape[0]
+        # ind = torch.LongTensor(range(self.num_policies)).to(self.device).expand(batch_size, -1)
+        # rm_done[nps!=ind] = 1
         ############# debug tricks
         gamma = self.learning_params.gamma
         nps_dim3 = nps.unsqueeze(-1).expand(-1, -1, self.num_actions)
@@ -78,6 +78,9 @@ class SACRMAgent(BaseRLAgent, RMAgent):
             # all_target_Q[:,i]=Q(s2,i,a2), where a2 is sampled from policy i
             all_target_Q1 = self.tar_critic_rm_net1.get_Q_by_all_action(s2, a2_u1).squeeze(-1)
             all_target_Q2 = self.tar_critic_rm_net2.get_Q_by_all_action(s2, a2_u1).squeeze(-1)
+            # we use Q(s2,u2,a2) as final target_Q, and u2=nps[u1]
+            all_target_Q1_u2 = torch.gather(all_target_Q1, 1, nps)
+            all_target_Q2_u2 = torch.gather(all_target_Q2, 1, nps)
 
         # Compute current Q
         all_current_Q1 = self.critic_rm_net1(torch.cat([s1, a1], 1)).squeeze(-1)
@@ -87,11 +90,8 @@ class SACRMAgent(BaseRLAgent, RMAgent):
         for i in range(self.num_policies):
             with torch.no_grad():
                 log_pi2 = log_pi2_u2[:, i]
-                # we use Q(s2,u2,a2) as final target_Q, and u2=nps[u1]
-                target_Q1 = torch.gather(all_target_Q1, 1, nps)
-                target_Q2 = torch.gather(all_target_Q2, 1, nps)
                 target_Q_soft = rewards[:, i] + gamma * (1 - rm_done[:, i]) * (
-                        torch.min(target_Q1[:, i], target_Q2[:, i]) - self.alpha[i] * log_pi2)
+                        torch.min(all_target_Q1_u2[:, i], all_target_Q2_u2[:, i]) - self.alpha[i] * log_pi2)
                 target_Q_soft = target_Q_soft.squeeze(-1)
             # Compute critic loss
             critic_loss += F.mse_loss(all_current_Q1[:, i], target_Q_soft) + F.mse_loss(all_current_Q2[:, i],
