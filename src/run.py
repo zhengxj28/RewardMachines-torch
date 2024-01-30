@@ -87,6 +87,7 @@ if __name__ == "__main__":
                         help='This parameter indicated which map to use. It must be a number between 0 and 10.')
     parser.add_argument('--seeds', nargs='+', type=int, default=[0],
                         help='A list of random seeds to run experiments.')
+    # use_rs (reward shaping) for RM methods are discarded
     parser.add_argument('--use_rs', action='store_true',
                         help='Whether to use reward shaping of reward machines.')
     parser.add_argument('--use_wandb', action='store_true',
@@ -98,17 +99,21 @@ if __name__ == "__main__":
     parser.add_argument('--notes', default='', type=str,
                         help='Notes on the algorithm, shown in wandb.')
 
+    parser.add_argument('--label_noise', default=0.0, type=float,
+                        help='Noise of the labelling function, between 0 and 1. For stochastic RM experiments only.')
+
     # add learning params in command lines for tests
-    parser.add_argument('--set_params', action='store_true',
-                        help='Whether to set learning parameters in command lines.')
-    parser.add_argument('--lr', default=1e-5, type=float, help='learning rate')
-    parser.add_argument('--buffer_size', default=1000, type=int, help='buffer size')
-    parser.add_argument('--batch_size', default=1000, type=int, help='(mini) batch size')
-    parser.add_argument('--n_updates', default=10, type=int, help='updated times for ppo')
-    parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
+    # parser.add_argument('--set_params', action='store_true',
+    #                     help='Whether to set learning parameters in command lines.')
+    # parser.add_argument('--lr', default=1e-5, type=float, help='learning rate')
+    # parser.add_argument('--buffer_size', default=1000, type=int, help='buffer size')
+    # parser.add_argument('--batch_size', default=1000, type=int, help='(mini) batch size')
+    # parser.add_argument('--n_updates', default=10, type=int, help='updated times for ppo')
+    # parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
 
     args = parser.parse_args()
     if not (0 <= args.map <= 10): raise NotImplementedError("The map must be a number between 0 and 10")
+    assert 0 <= args.label_noise <= 1
 
     alg_name = args.algorithm
     world = args.world
@@ -127,9 +132,10 @@ if __name__ == "__main__":
             wandb_config = copy.deepcopy(params)
             wandb_config['use_cuda'] = args.use_cuda
             wandb_config['seed'] = seed
+            wandb_config['label_noise'] = args.label_noise
             print(wandb_config)
             wandb.init(
-                project="zxj-LLM-Research",
+                project="Stochastic RM Research",
                 notes=args.notes,
                 group=world,
                 name=alg_name,
@@ -139,6 +145,7 @@ if __name__ == "__main__":
         for task in tester.tasks:
             print(task)
         print("*" * 10, "seed:", seed, "*" * 10)
+        print("*" * 10, "label_noise:", args.label_noise, "*" * 10)
         print("alg_name:", alg_name)
         print(params)
         time_init = time.time()

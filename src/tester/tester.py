@@ -21,6 +21,7 @@ class Tester:
         # Reading the file
         self.experiment = experiment_file
         self.use_wandb = args.use_wandb
+        self.label_noise = args.label_noise
         self.last_test_time = time.time()  # last testing time
         f = open(experiment_file)
         lines = [l.rstrip() for l in f]

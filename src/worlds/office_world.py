@@ -22,6 +22,8 @@ class OfficeWorld:
     def __init__(self, params):
         self._load_map()
         self.env_game_over = False
+        self.id2events = ["", "a", "b", "c", "d", "e", "f", "g", "n"]
+        self.all_events = set(self.id2events)
 
     def execute_action(self, a):
         """
@@ -50,6 +52,7 @@ class OfficeWorld:
         ret = ""
         if self.agent in self.objects:
             ret += self.objects[self.agent]
+        # assert ret in self.all_events  # for debug only
         return ret
 
     def get_state(self):

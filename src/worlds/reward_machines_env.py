@@ -4,6 +4,7 @@ from src.worlds.office_world import OfficeWorldParams, OfficeWorld
 # from src.worlds.half_cheetah import LabellingHalfCheetahEnv
 from src.worlds.wrapped_mujoco import WrappedMujoco
 from src.worlds.base_env import BaseEnv
+import random
 
 toy_game_types = ["craftworld", "waterworld", "officeworld"]
 
@@ -32,6 +33,7 @@ class RewardMachinesEnv(BaseEnv):
 
         self.env_params = env_params
         self.s = None
+        self.label_noise = tester.label_noise
 
         env_name = tester.game_type
         self.env_name = env_name
@@ -86,12 +88,13 @@ class RewardMachinesEnv(BaseEnv):
             s2, origin_reward, done, truncated, info = self.world.step(a)
             self.s = s2
             done = done or truncated
-        events = self.get_true_propositions()
+        true_events = self.get_true_events()
+        stochastic_events = self.get_stochastic_events()
         if self.rm is not None:
             u1 = self.u
-            u2 = self.rm.get_next_state(u1, events)
+            u2 = self.rm.get_next_state(u1, true_events)
             self.u = u2
-            info['events'] = events
+            info['events'] = stochastic_events
             rm_reward = self.rm.get_reward(u1, u2, s1, a, s2, info, eval_mode=True)
             done = done or self.rm.is_terminal_state(u2)
         else:
@@ -99,8 +102,14 @@ class RewardMachinesEnv(BaseEnv):
 
         return s2, rm_reward, done, info
 
-    def get_true_propositions(self):
+    def get_true_events(self):
         """
         Returns the string with the propositions that are True in this state
         """
         return self.world.get_true_propositions()
+
+    def get_stochastic_events(self):
+        if random.random() < self.label_noise:
+            return random.choice(self.world.id2events)
+        else:
+            return self.get_true_events()

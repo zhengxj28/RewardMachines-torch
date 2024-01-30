@@ -41,6 +41,9 @@ class WaterWorld:
         # Setting up event detectors
         self.current_collisions_old = set()
         self._update_events()
+        from src.temporal_logic.ltl_progression import get_truth_assignments
+        # TODO: get all possible events when self.b_num_colors > 6
+        self.id2events = get_truth_assignments(["a", "b", "c", "d", "e", "f"])
 
     def _get_current_collision(self):
         ret = set()
