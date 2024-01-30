@@ -64,10 +64,8 @@ class RewardMachine:
             # TODO: dense rewards for ltl generated rm
             if self.state2ltl[u2]=='True':
                 reward = 1
-            elif self.state2ltl[u2]=='False':
-                reward = -1
             else:
-                reward = -0.01
+                reward = 0
         else:
             # Getting reward from the RM
             reward = 0  # NOTE: if the agent falls from the reward machine it receives reward of zero
