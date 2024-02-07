@@ -13,6 +13,7 @@ class TesterOfficeWorld:
             self.rm_files = eval(lines[1])
             optimal_aux = eval(lines[2])
             self.ltl_files = eval(lines[3])
+            self.srm_files = eval(lines[4])
 
             # I compute the optimal reward
             self.optimal = {}

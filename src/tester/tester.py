@@ -3,6 +3,7 @@ from src.tester.tester_office import TesterOfficeWorld
 from src.tester.tester_water import TesterWaterWorld
 from src.tester.tester_mujoco import TesterMujoco
 from src.reward_machines.reward_machine import RewardMachine
+from src.reward_machines.stochastic_reward_machine import StochasticRewardMachine
 from src.tester.test_utils import read_json, get_precentiles_str, get_precentiles_in_seconds, reward2steps
 import numpy as np
 import time, os
@@ -51,7 +52,6 @@ class Tester:
                 self.task2rm_id[rm_file] = i
                 rm_file = os.path.join(os.path.dirname(__file__), "..", rm_file)
                 self.reward_machines.append(RewardMachine(rm_file, args.use_rs, learning_params.gamma, False))
-
         elif args.load_rm_mode == 'formulas':
             self.tasks = self.world.ltl_files
             self.ltl_formulas = []
@@ -62,6 +62,11 @@ class Tester:
                     lines = [l.rstrip() for l in f]
                     self.ltl_formulas.append(eval(lines[1]))
                 self.reward_machines.append(RewardMachine(ltl_file, args.use_rs, learning_params.gamma, True))
+        elif args.load_rm_mode == 'srm':
+            self.tasks = self.world.srm_files
+            for i, srm_file in enumerate(self.tasks):
+                self.task2rm_id[srm_file] = i
+                self.reward_machines.append(StochasticRewardMachine(srm_file))
         else:
             raise NotImplementedError('Unexpected load_rm_mode:' + args.load_rm_mode)
 

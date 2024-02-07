@@ -133,6 +133,7 @@ if __name__ == "__main__":
             wandb_config['use_cuda'] = args.use_cuda
             wandb_config['seed'] = seed
             wandb_config['label_noise'] = args.label_noise
+            wandb_config['load_rm_mode'] = args.load_rm_mode
             print(wandb_config)
             wandb.init(
                 project="Stochastic RM Research",

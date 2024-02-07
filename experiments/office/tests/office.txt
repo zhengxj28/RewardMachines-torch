@@ -2,3 +2,4 @@
 ["../experiments/office/reward_machines/t%d.txt"%i for i in [1,2,3,4]]  # tasks
 [15,29,29,30] # optimal policies
 ["../experiments/office/ltl_formulas/formula%d.txt"%i for i in [1,2,3,4]]  # tasks
+["experiments.office.stochastic_rm.srm%d"%i for i in [1]]  # tasks

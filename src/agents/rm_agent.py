@@ -1,8 +1,3 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.distributions import Categorical
 import time, random
 import numpy as np
 
@@ -23,12 +18,12 @@ class RMAgent:
         # Decomposing reward machines: We learn one policy per state in a reward machine
         t_i = time.time()
         self.state2policy = {}
-        policies_to_add = self.decompose_reward_machines(reward_machines)
+        policies_to_add = self._decompose_reward_machines(reward_machines)
         print("Decomposing RMs is done! (in %0.2f minutes)" % ((time.time() - t_i) / 60))
         num_policies = len(policies_to_add)
         self.num_policies = num_policies
 
-    def decompose_reward_machines(self, reward_machines):
+    def _decompose_reward_machines(self, reward_machines):
         # Some machine states might have equivalent Q-functions
         # In those cases, we learn only one policy for them
         policies_to_add = []
@@ -58,16 +53,7 @@ class RMAgent:
                     self.state2policy[(i, ui)] = policy_id
         return policies_to_add
 
-    def set_rm(self, rm_id, eval_mode=False, u=None):
-        if eval_mode:
-            self.rm_id_eval = rm_id
-            self.u_eval = self.reward_machines[self.rm_id_eval].get_initial_state() if u is None else u
-        else:
-            self.rm_id = rm_id
-            self.u = self.reward_machines[self.rm_id].get_initial_state() if u is None else u
-
-
-    def map_rewards(self, rewards):
+    def _map_rewards(self, rewards):
         """
         reward format:
            [R0, ..., Rn] where Ri is the list of rewards gotten by each state on the reward machine 'i'
@@ -89,7 +75,7 @@ class RMAgent:
                 #     raise ValueError("Error! equivalent policies are receiving different rewards!")
         return policy_rewards
 
-    def map_next_policies(self, next_states):
+    def _map_next_policies(self, next_states):
         """
         next_states format:
            [U0, ..., Un] where Ui is the list of next states for each state on the reward machine 'i'
@@ -103,14 +89,15 @@ class RMAgent:
                 u_next = self.state2policy[(i, next_states[i][j])]
                 if u not in done:
                     next_policies[u] = u_next
-                #     done.add(u)
-                # elif next_policies[u] != u_next:
-                #     print("(%d,%d) -> (%d,%d) " % (i, j, u, u_next))
-                #     print("policy discrepancy:", next_policies[u], "vs", u_next)
-                #     print("state2policy", self.state2policy)
-                #     print("next_states", next_states)
-                #     raise ValueError("Error! equivalent policies have different next policy!")
         return next_policies
+
+    def set_rm(self, rm_id, eval_mode=False, u=None):
+        if eval_mode:
+            self.rm_id_eval = rm_id
+            self.u_eval = self.reward_machines[self.rm_id_eval].get_initial_state() if u is None else u
+        else:
+            self.rm_id = rm_id
+            self.u = self.reward_machines[self.rm_id].get_initial_state() if u is None else u
 
     def update_rm_state(self, events, eval_mode=False):
         if eval_mode:
@@ -127,6 +114,15 @@ class RMAgent:
             rewards.append(j_rewards)
             next_policies.append(j_next_states)
         # Mapping rewards and next states to specific policies in the policy bank
-        rewards = self.map_rewards(rewards)
-        next_policies = self.map_next_policies(next_policies)
+        rewards = self._map_rewards(rewards)
+        next_policies = self._map_next_policies(next_policies)
         return rewards, next_policies
+
+class SRMAgent(RMAgent):
+    """
+    Agent for Stochastic Reward Machines
+    """
+
+    def __init__(self, reward_machines, task2rm_id):
+        RMAgent.__init__(self, reward_machines, task2rm_id)
+
