@@ -4,12 +4,12 @@ testing_params:
   num_steps: 1000
 
 learning_params:
-  total_units: 100
+  total_units: 500
   step_unit: 500
   gamma: 0.9
   tabular_case: true
   epsilon: 0.1
-  lr: 1
+  lr: 1.0  # 1.0 best in deterministic cases
   batch_size: 1
   learning_starts: 1
   buffer_size: 1

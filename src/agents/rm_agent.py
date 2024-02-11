@@ -118,6 +118,7 @@ class RMAgent:
         next_policies = self._map_next_policies(next_policies)
         return rewards, next_policies
 
+
 class SRMAgent(RMAgent):
     """
     Agent for Stochastic Reward Machines
@@ -125,4 +126,33 @@ class SRMAgent(RMAgent):
 
     def __init__(self, reward_machines, task2rm_id):
         RMAgent.__init__(self, reward_machines, task2rm_id)
+        self.num_rm_states = [len(rm.U) for rm in reward_machines]
+        self.belief_u = None
+        self.belief_u_eval = None
 
+    def set_rm(self, rm_id, eval_mode=False, u=None):
+        RMAgent.set_rm(self, rm_id, eval_mode, u)
+        if eval_mode:
+            self.belief_u_eval = np.zeros(self.num_rm_states[rm_id])
+            self.belief_u_eval[0] = 1
+        else:
+            self.belief_u = np.zeros(self.num_rm_states[rm_id])
+            self.belief_u[0] = 1
+
+    def update_belief_state(self, events, eval_mode=False):
+        def get_tran_matrix(rm, events):
+            if events in rm.events2id:
+                events_id = rm.events2id[events]
+                return rm.delta_u[events_id]
+            else:
+                # if rm do not consider `events`, then do not transit, i.e. return identity matrix
+                return np.eye(len(rm.U))
+
+        if eval_mode:
+            cur_rm = self.reward_machines[self.rm_id_eval]
+            tran_matrix = get_tran_matrix(cur_rm, events)
+            self.belief_u_eval = np.matmul(self.belief_u_eval, tran_matrix)
+        else:
+            cur_rm = self.reward_machines[self.rm_id]
+            tran_matrix = get_tran_matrix(cur_rm, events)
+            self.belief_u = np.matmul(self.belief_u, tran_matrix)

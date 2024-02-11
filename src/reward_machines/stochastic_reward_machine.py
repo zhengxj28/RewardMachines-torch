@@ -13,7 +13,7 @@ class StochasticRewardMachine:
         for p in path_list[1:]:
             module = getattr(module, p)
         srm_file = module
-        num_states = len(srm_file.delta_u)
+        num_states = srm_file.num_states
         self.U = [i for i in range(num_states)]  # list of machine states
         self.u0 = 0  # initial state
 
@@ -26,7 +26,8 @@ class StochasticRewardMachine:
         self.delta_u = []
         for events in self.all_events:
             self.delta_u.append(srm_file.delta_u[events])
-        self.delta_u = torch.Tensor(self.delta_u, device="cpu")
+        # self.delta_u = torch.Tensor(self.delta_u, device="cpu")
+        self.delta_u = np.array(self.delta_u)
 
         # delta_r[u1, u2] is the reward (function) of "from u1 to u2"
         self.delta_r = srm_file.delta_r  # reward-transition function
@@ -40,8 +41,10 @@ class StochasticRewardMachine:
     def get_next_state(self, u1, true_props):
         if true_props in self.events2id:
             events_id = self.events2id[true_props]
-            dist = Categorical(self.delta_u[events_id][u1])
-            u2 = dist.sample().item()
+            prob_array = self.delta_u[events_id][u1]
+            # dist = Categorical(self.delta_u[events_id][u1])
+            # u2 = dist.sample().item()
+            u2 = np.random.choice(len(prob_array), p=prob_array)
         else:
             # warnings.warn("RM states out of range when getting next state. Set next state `u2=u1` instead")
             u2 = u1
