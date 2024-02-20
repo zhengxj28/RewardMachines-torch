@@ -24,6 +24,9 @@ def run_experiment(args, tester, curriculum):
     if alg_name == "qrm":
         from src.algos.qrm import QRMAlgo
         algo = QRMAlgo(tester, curriculum, show_print, use_cuda)
+    elif alg_name == "qsrm":
+        from src.algos.qsrm import QSRMAlgo
+        algo = QSRMAlgo(tester, curriculum, show_print, use_cuda, args.label_noise)
     elif alg_name == "dqn":
         from src.algos.dqn import DQNAlgo
         algo = DQNAlgo(tester, curriculum, show_print, use_cuda)

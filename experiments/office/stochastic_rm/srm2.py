@@ -38,6 +38,6 @@ r = [[0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0],
      [0, 0, 0, 0, 0]]
 reward_matrix = [r]
-reward_components = {"constant1": 0}
+reward_components = {"constant": 0}
 
 delta_r = [[ConstantRewardFunction(r[i][j]) for j in range(5)] for i in range(5)]

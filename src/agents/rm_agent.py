@@ -260,8 +260,12 @@ class SRMAgent(RMAgent):
 
     def get_label_prob(self, info):
         label_prob = self.label_noise*np.ones(self.num_events)/self.num_events
-        label_prob[self.events2id[info['events']]] += (1-self.label_noise)
-
+        if info['events'] in self.events2id:
+            events = info['events']
+        else:
+            # TODO: cope with possible events in the env which is not considered in rm
+            events = ''
+        label_prob[self.events2id[events]] += (1-self.label_noise)
         return label_prob
 
     def get_srm_rewards(self, info):
@@ -269,5 +273,9 @@ class SRMAgent(RMAgent):
         return a reward matrix `srm_rewards`
         srm_rewards[u1,u2] is the reward when transit from policy u1 to policy u2
         """
-
-        return
+        srm_rewards = np.zeros([self.num_policies, self.num_policies])
+        for component, value in info.items():
+            if component in self.reward_components:
+                com_id = self.reward_components[component]
+                srm_rewards += value*self.reward_matrix[com_id]
+        return srm_rewards
