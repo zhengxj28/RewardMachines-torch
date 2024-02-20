@@ -14,6 +14,7 @@ class StochasticRewardMachine:
             module = getattr(module, p)
         srm_file = module
         num_states = srm_file.num_states
+        self.num_states = num_states
         self.U = [i for i in range(num_states)]  # list of machine states
         self.u0 = 0  # initial state
 
@@ -30,10 +31,12 @@ class StochasticRewardMachine:
         self.delta_u = np.array(self.delta_u)
 
         # delta_r[u1, u2] is the reward (function) of "from u1 to u2"
+        self.reward_matrix = np.array(srm_file.reward_matrix)
+        self.reward_components = srm_file.reward_components
         self.delta_r = srm_file.delta_r  # reward-transition function
         self.terminal = srm_file.terminal  # set of terminal states (they are automatically detected)
-
-    # Public methods -----------------------------------
+        self.pos_terminal = srm_file.pos_terminal
+        self.neg_terminal = srm_file.neg_terminal
 
     def get_initial_state(self):
         return self.u0
@@ -72,6 +75,12 @@ class StochasticRewardMachine:
 
     def is_terminal_state(self, u1):
         return u1 in self.terminal
+
+    def is_pos_terminal_state(self, u1):
+        return u1 in self.pos_terminal
+
+    def is_neg_terminal_state(self, u1):
+        return u1 in self.neg_terminal
 
     def is_this_machine_equivalent(self, u1, rm2, u2):
         return False

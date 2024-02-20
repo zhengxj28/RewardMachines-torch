@@ -99,6 +99,8 @@ class RewardMachinesEnv(BaseEnv):
             done = done or self.rm.is_terminal_state(u2)
         else:
             rm_reward = origin_reward
+        # for stochastic rm methods
+        info['constant'] = 1
 
         return s2, rm_reward, done, info
 

@@ -124,19 +124,107 @@ class SRMAgent(RMAgent):
     Agent for Stochastic Reward Machines
     """
 
-    def __init__(self, reward_machines, task2rm_id):
+    def __init__(self, reward_machines, task2rm_id, label_noise):
         RMAgent.__init__(self, reward_machines, task2rm_id)
-        self.num_rm_states = [len(rm.U) for rm in reward_machines]
+        self.label_noise = label_noise
+        self.num_states_of_rm = [len(rm.U) for rm in reward_machines]
+        all_events = []  # all events of all rm
+        for rm in reward_machines:
+            all_events += rm.all_events
+
+        all_events = list(set(all_events))
+        all_events.sort()
+        self.events2id = dict([(events, i) for i, events in enumerate(all_events)])
+        self.num_events = len(all_events)
+        rm_event_id2ag_event_id = {}
+        for i, rm in enumerate(reward_machines):
+            for rm_event_id, events in enumerate(rm.all_events):
+                rm_event_id2ag_event_id[(i, rm_event_id)] = self.events2id[events]
+
         self.belief_u = None
         self.belief_u_eval = None
+
+        # assemble transition matrices and reward matrices of each rm into one matrix
+        # self.policy_tran_matrix[l,u1,u2]=prob from policy u1 to policy u2 under events l
+        self.policy_tran_matrix = np.zeros([self.num_events, self.num_policies, self.num_policies])
+        for i, rm in enumerate(reward_machines):
+            for rm_event_id, events in enumerate(rm.all_events):
+                ag_event_id = rm_event_id2ag_event_id[(i, rm_event_id)]
+                for rm_u1 in range(rm.delta_u.shape[0]):
+                    ag_u1 = self.state2policy[(i, rm_u1)]
+                    for rm_u2 in range(rm.delta_u.shape[1]):
+                        ag_u2 = self.state2policy[(i, rm_u2)]
+                        # need to assert: different states do not map to the same policy
+                        # i.e. policy_tran_matrix[ag_event_id, ag_u1, ag_u2] do not have 2 or more values
+                        self.policy_tran_matrix[ag_event_id, ag_u1, ag_u2] = rm.delta_u[rm_event_id, rm_u1, rm_u2]
+
+        all_reward_components = set()
+        for i, rm in enumerate(reward_machines):
+            for com_name in rm.reward_components.keys():
+                all_reward_components.add(com_name)
+        all_reward_components = list(all_reward_components)
+        all_reward_components.sort()
+        self.reward_components = dict([(com_name, i) for i, com_name in enumerate(all_reward_components)])
+        self.num_reward_components = len(all_reward_components)
+        self.reward_matrix = np.zeros([self.num_reward_components, self.num_policies, self.num_policies])
+        for i, rm in enumerate(reward_machines):
+            for com_name, com_id in rm.reward_components.items():
+                for rm_u1 in range(rm.delta_u.shape[0]):
+                    ag_u1 = self.state2policy[(i, rm_u1)]
+                    for rm_u2 in range(rm.delta_u.shape[1]):
+                        ag_u2 = self.state2policy[(i, rm_u2)]
+                        ag_com_id = self.reward_components[com_name]
+                        self.reward_matrix[ag_com_id, ag_u1, ag_u2] = rm.reward_matrix[com_id, rm_u1, rm_u2]
+
+        self.terminal = np.zeros([self.num_policies])
+        for i in range(self.num_policies):
+            if i in self.terminal_policy:
+                self.terminal[i] = 1
+
+    def _decompose_reward_machines(self, reward_machines):
+        """
+        it is overwritten for stochastic rm, which is different from deterministic rm
+        """
+        # Some machine states might have equivalent Q-functions
+        # In those cases, we learn only one policy for them
+        policies_to_add = []
+        # We add_data one constant policy for every terminal state
+        policies_to_add.append("positive")  # positive terminal policy has id '0'
+        policies_to_add.append("negative")  # negative terminal policy has id '1'
+        self.terminal_policy = {0, 1}
+        # Associating policies to each machine state
+        for i, rm in enumerate(reward_machines):
+            for ui in range(len(rm.get_states())):
+                if rm.is_pos_terminal_state(ui):
+                    # terminal states goes to the constant policy
+                    self.state2policy[(i, ui)] = 0
+                elif rm.is_neg_terminal_state(ui):
+                    self.state2policy[(i, ui)] = 1
+                else:
+                    # associating a policy for this reward machine state
+                    policy_id = None
+                    for j, uj in self.state2policy:
+                        # checking if we already have a policy for an equivalent reward machine
+                        if rm.is_this_machine_equivalent(ui, reward_machines[j], uj):
+                            print(
+                                "Match: reward machine %d from state %d is equivalent to reward machine %d from state "
+                                "%d" % (i, ui, j, uj))
+                            policy_id = self.state2policy[(j, uj)]
+                            break
+                    if policy_id is None:
+                        # creating a new policy for this node
+                        policy_id = len(policies_to_add)
+                        policies_to_add.append("machine" + str(i) + "_state" + str(ui))
+                    self.state2policy[(i, ui)] = policy_id
+        return policies_to_add
 
     def set_rm(self, rm_id, eval_mode=False, u=None):
         RMAgent.set_rm(self, rm_id, eval_mode, u)
         if eval_mode:
-            self.belief_u_eval = np.zeros(self.num_rm_states[rm_id])
+            self.belief_u_eval = np.zeros(self.num_states_of_rm[rm_id])
             self.belief_u_eval[0] = 1
         else:
-            self.belief_u = np.zeros(self.num_rm_states[rm_id])
+            self.belief_u = np.zeros(self.num_states_of_rm[rm_id])
             self.belief_u[0] = 1
 
     def update_belief_state(self, events, eval_mode=False):
@@ -156,3 +244,30 @@ class SRMAgent(RMAgent):
             cur_rm = self.reward_machines[self.rm_id]
             tran_matrix = get_tran_matrix(cur_rm, events)
             self.belief_u = np.matmul(self.belief_u, tran_matrix)
+
+    def belief_state2policy(self, eval_mode):
+        if eval_mode:
+            cur_rm_id = self.rm_id_eval
+            cur_belief_u = self.belief_u_eval
+        else:
+            cur_rm_id = self.rm_id
+            cur_belief_u = self.belief_u
+        belief_policy = np.zeros(self.num_policies)
+        for i, p in enumerate(cur_belief_u):
+            # different rm states may map to the same policy, so add the probability `p`
+            belief_policy[self.state2policy[(cur_rm_id, i)]] += p
+        return belief_policy
+
+    def get_label_prob(self, info):
+        label_prob = self.label_noise*np.ones(self.num_events)/self.num_events
+        label_prob[self.events2id[info['events']]] += (1-self.label_noise)
+
+        return label_prob
+
+    def get_srm_rewards(self, info):
+        """
+        return a reward matrix `srm_rewards`
+        srm_rewards[u1,u2] is the reward when transit from policy u1 to policy u2
+        """
+
+        return

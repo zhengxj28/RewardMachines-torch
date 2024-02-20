@@ -22,8 +22,14 @@ delta_u = {'': [[1, 0, 0, 0],
                  [0, 0, 0, 1]]}
 
 terminal = {2, 3}
+pos_terminal = {2}
+neg_terminal = {3}
 
-delta_r = [[ConstantRewardFunction(0), ConstantRewardFunction(0), ConstantRewardFunction(0), ConstantRewardFunction(0)],
-           [ConstantRewardFunction(0), ConstantRewardFunction(0), ConstantRewardFunction(1), ConstantRewardFunction(0)],
-           [ConstantRewardFunction(0), ConstantRewardFunction(0), ConstantRewardFunction(0), ConstantRewardFunction(0)],
-           [ConstantRewardFunction(0), ConstantRewardFunction(0), ConstantRewardFunction(0), ConstantRewardFunction(0)]]
+r = [[0, 0, 0, 0],
+     [0, 0, 1, 0],
+     [0, 0, 0, 0],
+     [0, 0, 0, 0]]
+reward_matrix = [r]
+reward_components = {"constant": 0}
+
+delta_r = [[ConstantRewardFunction(r[i][j]) for j in range(4)] for i in range(4)]
