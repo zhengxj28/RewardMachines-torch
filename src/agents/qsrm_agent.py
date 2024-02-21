@@ -80,7 +80,8 @@ class QSRMAgent(BaseRLAgent, SRMAgent):
 
     def get_action(self, s, eval_mode=False):
         device = self.device
-        belief_policy = self.belief_state2policy(eval_mode)
+        # belief_policy = self.belief_state2policy(eval_mode)
+        belief_policy = self.belief_policy_eval if eval_mode else self.belief_policy
         if not eval_mode and random.random() < self.learning_params.epsilon:
             a = random.choice(range(self.num_actions))
         else:
@@ -93,16 +94,17 @@ class QSRMAgent(BaseRLAgent, SRMAgent):
         return int(a)
 
     def update(self, s1, a, s2, info, done, eval_mode=False):
+        label_prob = self.get_label_prob(info)
         if not eval_mode:
             # for deterministic data augment
             rewards, next_policies = self.get_rewards_and_next_policies(s1, a, s2, info)
             # for stochastic data augment
-            label_prob = self.get_label_prob(info)
             srm_rewards = self.get_srm_rewards(info)
             self.buffer.add_data(s1, a, s2, rewards, next_policies, done, label_prob, srm_rewards)
 
         # update current rm state
-        self.update_belief_state(info['events'], eval_mode)
+        # self.update_belief_state(info['events'], eval_mode)
+        self.update_belief_policy(label_prob, eval_mode)
 
     def reset_status(self, task, eval_mode=False):
         rm_id = self.task2rm_id[task]

@@ -143,6 +143,8 @@ class SRMAgent(RMAgent):
 
         self.belief_u = None
         self.belief_u_eval = None
+        self.belief_policy = np.zeros(self.num_policies)
+        self.belief_policy_eval = np.zeros(self.num_policies)
 
         # assemble transition matrices and reward matrices of each rm into one matrix
         # self.policy_tran_matrix[l,u1,u2]=prob from policy u1 to policy u2 under events l
@@ -223,9 +225,13 @@ class SRMAgent(RMAgent):
         if eval_mode:
             self.belief_u_eval = np.zeros(self.num_states_of_rm[rm_id])
             self.belief_u_eval[0] = 1
+            self.belief_policy_eval = np.zeros(self.num_policies)
+            self.belief_policy_eval[self.state2policy[(rm_id, 0)]] = 1
         else:
             self.belief_u = np.zeros(self.num_states_of_rm[rm_id])
             self.belief_u[0] = 1
+            self.belief_policy = np.zeros(self.num_policies)
+            self.belief_policy[self.state2policy[(rm_id, 0)]] = 1
 
     def update_belief_state(self, events, eval_mode=False):
         def get_tran_matrix(rm, events):
@@ -244,6 +250,16 @@ class SRMAgent(RMAgent):
             cur_rm = self.reward_machines[self.rm_id]
             tran_matrix = get_tran_matrix(cur_rm, events)
             self.belief_u = np.matmul(self.belief_u, tran_matrix)
+
+    def update_belief_policy(self, label_prob, eval_mode=False):
+        belief_policy = self.belief_policy_eval if eval_mode else self.belief_policy
+        next_belief_policy = np.zeros(self.num_policies)
+        for l, prob in enumerate(label_prob):
+            next_belief_policy += prob * np.matmul(belief_policy, self.policy_tran_matrix[l])
+        if eval_mode:
+            self.belief_policy_eval = next_belief_policy
+        else:
+            self.belief_policy = next_belief_policy
 
     def belief_state2policy(self, eval_mode):
         if eval_mode:
