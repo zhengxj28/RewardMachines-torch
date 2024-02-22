@@ -152,9 +152,9 @@ class SRMAgent(RMAgent):
         for i, rm in enumerate(reward_machines):
             for rm_event_id, events in enumerate(rm.all_events):
                 ag_event_id = rm_event_id2ag_event_id[(i, rm_event_id)]
-                for rm_u1 in range(rm.delta_u.shape[0]):
+                for rm_u1 in range(rm.delta_u.shape[1]):
                     ag_u1 = self.state2policy[(i, rm_u1)]
-                    for rm_u2 in range(rm.delta_u.shape[1]):
+                    for rm_u2 in range(rm.delta_u.shape[2]):
                         ag_u2 = self.state2policy[(i, rm_u2)]
                         # need to assert: different states do not map to the same policy
                         # i.e. policy_tran_matrix[ag_event_id, ag_u1, ag_u2] do not have 2 or more values
@@ -171,9 +171,9 @@ class SRMAgent(RMAgent):
         self.reward_matrix = np.zeros([self.num_reward_components, self.num_policies, self.num_policies])
         for i, rm in enumerate(reward_machines):
             for com_name, com_id in rm.reward_components.items():
-                for rm_u1 in range(rm.delta_u.shape[0]):
+                for rm_u1 in range(rm.delta_u.shape[1]):
                     ag_u1 = self.state2policy[(i, rm_u1)]
-                    for rm_u2 in range(rm.delta_u.shape[1]):
+                    for rm_u2 in range(rm.delta_u.shape[2]):
                         ag_u2 = self.state2policy[(i, rm_u2)]
                         ag_com_id = self.reward_components[com_name]
                         self.reward_matrix[ag_com_id, ag_u1, ag_u2] = rm.reward_matrix[com_id, rm_u1, rm_u2]

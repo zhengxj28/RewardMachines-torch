@@ -55,17 +55,26 @@ def get_tester_curriculum(world, experiment, args):
     from src.tester.tester import Tester
     from src.tester.params import Params
     from src.common.curriculum import MultiTaskCurriculumLearner
+    from src.common.curriculum import LifelongCurriculumLearner
     project_path = os.path.join(os.path.dirname(__file__), "..")
     config_path = os.path.join(project_path, "params", world, args.algorithm + ".yaml")
     with open(config_path, 'r') as file:
         params = yaml.safe_load(file)
 
     tester = Tester(params, experiment, args)
+    learning_params = Params(params['learning_params'])
+    total_steps = learning_params.step_unit * learning_params.total_units
 
     # Setting the curriculum learner
-    curriculum = MultiTaskCurriculumLearner(tester.tasks)
-    learning_params = Params(params['learning_params'])
-    curriculum.total_steps = learning_params.step_unit * learning_params.total_units
+    if args.algorithm in ["lifelong_qrm"]:
+        curriculum = LifelongCurriculumLearner(tester.tasks,
+                                               tester.world.lifelong_curriculum,
+                                               total_steps=total_steps
+                                               )
+    else:
+        curriculum = MultiTaskCurriculumLearner(tester.tasks,
+                                                total_steps=total_steps)
+
     return tester, curriculum, params
 
 

@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 
 
 class BaseCurriculumLearner(ABC):
-    def __init__(self, tasks, *args):
+    def __init__(self, tasks, total_steps, *args):
         self.tasks = tasks
+        self.total_steps = total_steps
         self.current_step = 0
         self.current_episode = 0
 
@@ -38,7 +39,7 @@ class MultiTaskCurriculumLearner(BaseCurriculumLearner):
     In addition, it controls how many steps the agent has given so far
     """
 
-    def __init__(self, tasks, num_steps=100, min_steps=1000, total_steps=10000):
+    def __init__(self, tasks, total_steps):
         """Parameters
         -------
         tasks: list of strings
@@ -52,10 +53,7 @@ class MultiTaskCurriculumLearner(BaseCurriculumLearner):
         total_steps: int
             total number of training steps that the agent has to learn all the tasks
         """
-        super().__init__(tasks)
-        # self.num_steps = num_steps
-        # self.min_steps = min_steps
-        self.total_steps = total_steps
+        super().__init__(tasks, total_steps)
 
     def restart(self):
         self.current_step = 0
@@ -72,16 +70,10 @@ class MultiTaskCurriculumLearner(BaseCurriculumLearner):
     def get_current_task(self):
         return self.tasks[self.current_task]
 
-    # def stop_task(self, step):
-    #     return self.min_steps <= step
-
 
 class SingleTaskCurriculumLearner(BaseCurriculumLearner):
-    def __init__(self, tasks, num_steps=100, min_steps=1000, total_steps=10000):
-        super().__init__(tasks)
-        self.num_steps = num_steps
-        self.min_steps = min_steps
-        self.total_steps = total_steps
+    def __init__(self, tasks, total_steps):
+        super().__init__(tasks, total_steps)
 
     def restart(self):
         self.current_step = 0
@@ -94,3 +86,36 @@ class SingleTaskCurriculumLearner(BaseCurriculumLearner):
         return self.tasks[0]
 
 
+class LifelongCurriculumLearner(BaseCurriculumLearner):
+    def __init__(self, tasks, lifelong_curriculum, total_steps):
+        super().__init__(tasks, total_steps)
+        self.current_task = None
+        self.num_phases = len(lifelong_curriculum)
+        self.phase_steps = total_steps//self.num_phases
+        self.current_phase = 0
+        # lifelong_curriculum[i] is a list of tasks in phase i
+        self.lifelong_curriculum = lifelong_curriculum
+        self.current_curriculum = []
+
+    def restart(self):
+        self.current_step = 0
+        self.current_phase = 0
+        self.current_curriculum = self.lifelong_curriculum[0]
+        self.current_task_in_curriculum = 0
+        self.current_task = self.current_curriculum[0]
+
+    def stop_learning(self):
+        return self.total_steps <= self.current_step
+
+    def stop_curriculum(self):
+        return self.current_step - self.current_phase*self.phase_steps > self.phase_steps
+
+    def get_next_task(self):
+        if self.current_step - self.current_phase*self.phase_steps <= self.phase_steps:
+            self.current_task = (self.current_task + 1) % len(self.current_curriculum)
+        else:
+            # new phase
+            self.current_phase += 1
+            self.current_curriculum = self.lifelong_curriculum[self.current_phase]
+            self.current_task = 0
+        return self.current_task

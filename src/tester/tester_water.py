@@ -20,6 +20,7 @@ class TesterWaterWorld:
             self.maps = eval(lines[7])
             self.rm_files = eval(lines[8])
             self.ltl_files = eval(lines[9])
+            self.srm_files = eval(lines[10])
             print("-------------")
             print("max_x", self.max_x)
             print("max_y", self.max_y)

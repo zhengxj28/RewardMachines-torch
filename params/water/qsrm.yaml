@@ -1,0 +1,24 @@
+testing_params:
+  test: true
+  test_freq: 10000
+  num_steps: 600
+
+learning_params:
+  total_units: 200
+  step_unit: 10000
+  lr: 0.00001  # 5e-5 seems to be better than 1e-4
+  epsilon: 0.1
+  gamma: 0.9
+  buffer_size: 50000
+  train_freq: 1
+  batch_size: 32
+  target_network_update_freq: 100  # obs: 500 makes learning more stable, but slower
+  learning_starts: 1000  # 1000
+  tabular_case: false
+  use_random_maps: false
+
+  stochastic_data_augment: true # false: as qrm does; true: weighted sum over probabilistic next rm states
+  use_label_prob: true
+
+model_params:
+  tabular_case: true

@@ -16,6 +16,7 @@ learning_params:
   target_network_update_freq: 1
   train_freq: 1
   stochastic_data_augment: true # false: as qrm does; true: weighted sum over probabilistic next rm states
+  use_label_prob: true
 
 model_params:
   tabular_case: true

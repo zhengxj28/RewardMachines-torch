@@ -8,3 +8,4 @@ False # ball_disappear
 ["../experiments/water/maps/world_0.pkl"] # map
 ["../experiments/water/reward_machines/t%d.txt"%i for i in [1,10,11]]  # tasks
 ["../experiments/water/ltl_formulas/formula%d.txt"%i for i in [1,10,11]]
+["experiments.water.stochastic_rm.srm%d"%i for i in [1,2,3]]
