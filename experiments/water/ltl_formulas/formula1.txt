@@ -1,2 +1,2 @@
 ['a','b','c','d','e','f']
-('then', ('eventually', 'a'),  ('eventually', 'b'))    # t1.txt
+('then', ('eventually', 'a'),  ('eventually', 'b'))

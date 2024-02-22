@@ -110,6 +110,8 @@ if __name__ == "__main__":
                         help='files: load rm from files; formulas: automatically generate rm by ltl progression.')
     parser.add_argument('--notes', default='', type=str,
                         help='Notes on the algorithm, shown in wandb.')
+    parser.add_argument('--project', default='Default Project', type=str,
+                        help='Project name in the wandb.')
 
     parser.add_argument('--label_noise', default=0.0, type=float,
                         help='Noise of the labelling function, between 0 and 1. For stochastic RM experiments only.')
@@ -148,7 +150,7 @@ if __name__ == "__main__":
             wandb_config['load_rm_mode'] = args.load_rm_mode
             print(wandb_config)
             wandb.init(
-                project="Stochastic RM Research",
+                project=args.project,
                 notes=args.notes,
                 group=world,
                 name=alg_name,
