@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 class BaseCurriculumLearner(ABC):
     def __init__(self, tasks, total_steps, *args):
         self.tasks = tasks
+        self.current_task = 0
         self.total_steps = total_steps
         self.current_step = 0
         self.current_episode = 0
@@ -19,6 +20,9 @@ class BaseCurriculumLearner(ABC):
 
     def add_episode(self):
         self.current_episode += 1
+
+    def get_current_task(self):
+        return self.tasks[self.current_task]
 
     @abstractmethod
     def restart(self):
@@ -66,9 +70,6 @@ class MultiTaskCurriculumLearner(BaseCurriculumLearner):
         self.last_restart = -1
         self.current_task = (self.current_task + 1) % len(self.tasks)
         return self.get_current_task()
-
-    def get_current_task(self):
-        return self.tasks[self.current_task]
 
 
 class SingleTaskCurriculumLearner(BaseCurriculumLearner):
@@ -118,4 +119,4 @@ class LifelongCurriculumLearner(BaseCurriculumLearner):
             self.current_phase += 1
             self.current_curriculum = self.lifelong_curriculum[self.current_phase]
             self.current_task = 0
-        return self.current_task
+        return self.get_current_task()

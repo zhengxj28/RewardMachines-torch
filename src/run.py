@@ -45,6 +45,9 @@ def run_experiment(args, tester, curriculum):
     elif alg_name == "sacrm":
         from src.algos.sacrm import SACRMAlgo
         algo = SACRMAlgo(tester, curriculum, show_print, use_cuda)
+    elif alg_name == "lifelong_qrm":
+        from src.lifelong.lifelong_qrm import LifelongQRMAlgo
+        algo = LifelongQRMAlgo(tester, curriculum, show_print, use_cuda)
     else:
         raise NotImplementedError("Algorithm:" + alg_name)
 

@@ -95,6 +95,16 @@ class QRMNet(nn.Module):
                 q_net = DeepQNet(num_obs, num_actions, model_params)
             self.qrm_net.append(q_net)
 
+    def freeze(self, policies):
+        for policy in policies:
+            for params in self.qrm_net[policy].parameters():
+                params.requires_grad = False
+
+    def activate(self, policies):
+        for policy in policies:
+            for params in self.qrm_net[policy].parameters():
+                params.requires_grad = True
+
     def forward(self, state):
         # return Q-values of all policies
         q_values = []
