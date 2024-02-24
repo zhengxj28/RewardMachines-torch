@@ -8,10 +8,13 @@ class TabularQNet(nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
         self.layer = nn.Linear(input_dim, output_dim, bias=False)
-        nn.init.constant_(self.layer.weight, 1.0)
+        self.initialize_params()
 
     def forward(self, state):
         return self.layer(state)
+
+    def initialize_params(self):
+        nn.init.constant_(self.layer.weight, 1.0)
 
 
 class DeepQNet(nn.Module):
@@ -27,10 +30,7 @@ class DeepQNet(nn.Module):
                 self.layers.append(nn.Linear(hidden_dim, hidden_dim))
             else:
                 self.layers.append(nn.Linear(hidden_dim, output_dim))
-        # initialize parameters
-        for layer in self.layers:
-            nn.init.trunc_normal_(layer.weight, std=0.1)
-            nn.init.constant_(layer.bias, val=0.1)
+        self.initialize_params()
 
     def forward(self, x):
         for i in range(self.num_hidden_layers - 1):
@@ -38,6 +38,12 @@ class DeepQNet(nn.Module):
             x = F.relu(x)
         x = self.layers[self.num_hidden_layers - 1](x)
         return x
+
+    def initialize_params(self):
+        # initialize parameters
+        for layer in self.layers:
+            nn.init.trunc_normal_(layer.weight, std=0.1)
+            nn.init.constant_(layer.bias, val=0.1)
 
 
 class LTLQNet(nn.Module):

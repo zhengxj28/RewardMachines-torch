@@ -95,6 +95,15 @@ class QRMNet(nn.Module):
                 q_net = DeepQNet(num_obs, num_actions, model_params)
             self.qrm_net.append(q_net)
 
+    def forward(self, state):
+        # return Q-values of all policies
+        q_values = []
+        for i in range(self.num_policies):
+            q_values.append(self.qrm_net[i](state))
+        q_values = torch.stack(q_values, dim=1)
+        # dims of q_values: (batch_size, num_policies, num_actions)
+        return q_values
+
     def freeze(self, policies):
         for policy in policies:
             for params in self.qrm_net[policy].parameters():
@@ -105,14 +114,9 @@ class QRMNet(nn.Module):
             for params in self.qrm_net[policy].parameters():
                 params.requires_grad = True
 
-    def forward(self, state):
-        # return Q-values of all policies
-        q_values = []
-        for i in range(self.num_policies):
-            q_values.append(self.qrm_net[i](state))
-        q_values = torch.stack(q_values, dim=1)
-        # dims of q_values: (batch_size, num_policies, num_actions)
-        return q_values
+    def re_initialize_networks(self):
+        for q_net in self.qrm_net:
+            q_net.initialize_params()
 
 
 class LTLQRMNet(nn.Module):

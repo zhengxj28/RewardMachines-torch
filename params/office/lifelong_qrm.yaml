@@ -15,6 +15,7 @@ learning_params:
   buffer_size: 1
   target_network_update_freq: 1
   train_freq: 1
+  transfer_methods: "none"  # "none"/"equivalent"/"value_com"/"distill"
 
 model_params:
   tabular_case: true

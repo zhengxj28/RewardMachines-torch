@@ -2,10 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
-from src.networks.rm_network import QRMNet
-from src.agents.rm_agent import RMAgent
-from src.agents.base_rl_agent import BaseRLAgent
-from src.agents.qrm_agent import QRMAgent, ReplayBuffer
+
+from src.agents.qrm_agent import QRMAgent
 
 
 class LifelongQRMAgent(QRMAgent):
@@ -28,15 +26,6 @@ class LifelongQRMAgent(QRMAgent):
                 if rm_id in tasks_of_phase:
                     self.policies_of_each_phase[phase].add(policy_id)
 
-    def activate_and_freeze_networks(self):
-        # note that a policy may considered in different phase, due to "equivalent states" of RM
-        # must freeze networks of other phases first, then activate networks of current phase
-        for phase, policies in enumerate(self.policies_of_each_phase):
-            if phase == self.current_phase: continue
-            self.qrm_net.freeze(policies)
-
-        self.qrm_net.activate(self.policies_of_each_phase[self.current_phase])
-
     def learn(self):
         s1, a, s2, rs, nps, _ = self.buffer.sample(self.learning_params.batch_size)
         done = torch.zeros_like(nps, device=self.device)
@@ -50,6 +39,7 @@ class LifelongQRMAgent(QRMAgent):
             Q_tar_all = torch.max(self.tar_qrm_net(s2), dim=2)[0]
             Q_tar = torch.gather(Q_tar_all, dim=1, index=nps)
 
+        # TODO: knowledge distillation methods
         loss = torch.Tensor([0.0]).to(self.device)
         for i in range(self.num_policies):
             loss += 0.5 * nn.MSELoss()(Q[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
@@ -58,3 +48,19 @@ class LifelongQRMAgent(QRMAgent):
         loss.backward()
         self.optimizer.step()
         return {"value_loss": loss.cpu().item() / self.num_policies}
+
+    def transfer_knowledge(self):
+        if self.learning_params.transfer_methods == "none":
+            # simulate learning from scratch, need to re-initialize networks
+            self.qrm_net.re_initialize_networks()
+        elif self.learning_params.transfer_methods == "equivalent":
+            # equivalent states have been merged in a policy when initializing the agent
+            # so do nothing here
+            pass
+        # TODO: implement the following methods
+        elif self.learning_params.transfer_methods == "value_com":
+            raise NotImplementedError(f"Unknown knowledge transfer methods: {self.learning_params.transfer_methods}")
+        elif self.learning_params.transfer_methods == "distill":
+            raise NotImplementedError(f"Unknown knowledge transfer methods: {self.learning_params.transfer_methods}")
+        else:
+            raise NotImplementedError(f"Unknown knowledge transfer methods: {self.learning_params.transfer_methods}")

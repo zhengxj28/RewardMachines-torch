@@ -7,16 +7,22 @@ import time
 class LifelongAlgo(BaseAlgo, ABC):
     def __init__(self, tester, curriculum, *args):
         super().__init__(tester, curriculum, args)
+        self.current_phase = curriculum.current_phase
 
     def run_experiments(self):
         curriculum = self.curriculum
+        self.start_new_phase()
         while not curriculum.stop_learning():
             phase_before = curriculum.current_phase
             task = curriculum.get_next_task()
             phase_after = curriculum.current_phase
             if phase_before != phase_after:
-                self.transfer_knowledge()
+                self.start_new_phase()
             self.train_episode(task)
+
+    @abstractmethod
+    def start_new_phase(self):
+        pass
 
     @abstractmethod
     def transfer_knowledge(self):

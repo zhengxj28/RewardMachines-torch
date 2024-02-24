@@ -90,7 +90,8 @@ class SingleTaskCurriculumLearner(BaseCurriculumLearner):
 class LifelongCurriculumLearner(BaseCurriculumLearner):
     def __init__(self, tasks, lifelong_curriculum, total_steps):
         super().__init__(tasks, total_steps)
-        self.current_task = None
+
+        self.current_task_in_curriculum = 0
         self.num_phases = len(lifelong_curriculum)
         self.phase_steps = total_steps//self.num_phases
         self.current_phase = 0
@@ -102,21 +103,24 @@ class LifelongCurriculumLearner(BaseCurriculumLearner):
         self.current_step = 0
         self.current_phase = 0
         self.current_curriculum = self.lifelong_curriculum[0]
+        # relative task id in the current_curriculum
         self.current_task_in_curriculum = 0
+        # absolute task id in the list of all tasks
         self.current_task = self.current_curriculum[0]
 
     def stop_learning(self):
         return self.total_steps <= self.current_step
 
     def stop_curriculum(self):
-        return self.current_step - self.current_phase*self.phase_steps > self.phase_steps
+        return self.current_step - self.current_phase*self.phase_steps >= self.phase_steps
 
     def get_next_task(self):
         if self.current_step - self.current_phase*self.phase_steps <= self.phase_steps:
-            self.current_task = (self.current_task + 1) % len(self.current_curriculum)
+            self.current_task_in_curriculum = (self.current_task_in_curriculum + 1) % len(self.current_curriculum)
         else:
             # new phase
             self.current_phase += 1
             self.current_curriculum = self.lifelong_curriculum[self.current_phase]
-            self.current_task = 0
+            self.current_task_in_curriculum = 0
+        self.current_task = self.current_curriculum[self.current_task_in_curriculum]
         return self.get_current_task()

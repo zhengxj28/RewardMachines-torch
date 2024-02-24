@@ -29,9 +29,9 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
                                       curriculum.lifelong_curriculum)
 
     def train_episode(self, task):
-        self.agent.current_phase = self.curriculum.current_phase
-        # activate networks of current phase and freeze other networks to simulate "lifelong learning"
-        self.agent.activate_and_freeze_networks()
+        # self.agent.current_phase = self.curriculum.current_phase
+        # # activate networks of current phase and freeze other networks to simulate "lifelong learning"
+        # self.agent.activate_and_freeze_networks()
 
         tester = self.tester
         curriculum = self.curriculum
@@ -77,7 +77,7 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
                 self.evaluate(cur_step)
 
             # Restarting the environment (Game Over)
-            if done or curriculum.stop_learning():
+            if done or curriculum.stop_learning() or curriculum.stop_curriculum():
                 break
 
             # Moving to the next state
@@ -86,6 +86,23 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
     def evaluate_episode(self, task):
         return NonMDPAlgo.evaluate_episode(self, task)
 
+    def start_new_phase(self):
+        self.transfer_knowledge()
+        self.current_phase = self.curriculum.current_phase
+        # activate networks of current phase and freeze other networks to simulate "lifelong learning"
+        self.activate_and_freeze_networks()
+        # self.agent.buffer.clear()
+
+    def activate_and_freeze_networks(self):
+        # note that a policy may considered in different phase, due to "equivalent states" of RM
+        # must freeze networks of other phases first, then activate networks of current phase
+        # for phase, policies in enumerate(self.agent.policies_of_each_phase):
+        #     if phase == self.agent.current_phase: continue
+        #     self.agent.qrm_net.freeze(policies)
+        activate_policies = self.agent.policies_of_each_phase[self.current_phase]
+        freeze_policies = set([i for i in range(self.agent.num_policies)])-activate_policies
+        self.agent.qrm_net.freeze(freeze_policies)
+        self.agent.qrm_net.activate(activate_policies)
+
     def transfer_knowledge(self):
-        # TODO: need to be implemented
-        pass
+        self.agent.transfer_knowledge()

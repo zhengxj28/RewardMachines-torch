@@ -16,8 +16,6 @@ learning_params:
   learning_starts: 1000
   tabular_case: false
   use_random_maps: false
-  use_double_dqn: true
-  prioritized_replay: true
 
 model_params:
   tabular_case: false
