@@ -21,6 +21,7 @@ class TesterWaterWorld:
             self.rm_files = eval(lines[8])
             self.ltl_files = eval(lines[9])
             self.srm_files = eval(lines[10])
+            self.lifelong_curriculum = eval(lines[11])
             print("-------------")
             print("max_x", self.max_x)
             print("max_y", self.max_y)
