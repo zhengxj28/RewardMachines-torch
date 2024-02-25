@@ -21,7 +21,7 @@ class BaseCurriculumLearner(ABC):
     def add_episode(self):
         self.current_episode += 1
 
-    def get_current_task(self):
+    def get_current_task_file(self):
         return self.tasks[self.current_task]
 
     @abstractmethod
@@ -44,19 +44,6 @@ class MultiTaskCurriculumLearner(BaseCurriculumLearner):
     """
 
     def __init__(self, tasks, total_steps):
-        """Parameters
-        -------
-        tasks: list of strings
-            list with the path to the rms for each task
-        num_steps: int
-            max number of steps that the agent has to complete the task.
-            if it does it, we consider a hit on its 'suceess rate' 
-            (this emulates considering the average reward after running a rollout for 'num_steps')
-        min_steps: int
-            minimum number of training steps required to the agent before considering moving to another task
-        total_steps: int
-            total number of training steps that the agent has to learn all the tasks
-        """
         super().__init__(tasks, total_steps)
 
     def restart(self):
@@ -69,7 +56,7 @@ class MultiTaskCurriculumLearner(BaseCurriculumLearner):
     def get_next_task(self):
         self.last_restart = -1
         self.current_task = (self.current_task + 1) % len(self.tasks)
-        return self.get_current_task()
+        return self.get_current_task_file()
 
 
 class SingleTaskCurriculumLearner(BaseCurriculumLearner):
@@ -90,17 +77,22 @@ class SingleTaskCurriculumLearner(BaseCurriculumLearner):
 class LifelongCurriculumLearner(BaseCurriculumLearner):
     def __init__(self, tasks, lifelong_curriculum, total_steps):
         super().__init__(tasks, total_steps)
-
         self.current_task_in_curriculum = 0
         self.num_phases = len(lifelong_curriculum)
-        self.phase_steps = total_steps//self.num_phases
+        self.phase_total_steps = total_steps // self.num_phases
         self.current_phase = 0
+        self.current_step_of_phase = 0
         # lifelong_curriculum[i] is a list of tasks in phase i
         self.lifelong_curriculum = lifelong_curriculum
         self.current_curriculum = []
 
+    def add_step(self):
+        self.current_step += 1
+        self.current_step_of_phase += 1
+
     def restart(self):
         self.current_step = 0
+        self.current_step_of_phase = 0
         self.current_phase = 0
         self.current_curriculum = self.lifelong_curriculum[0]
         # relative task id in the current_curriculum
@@ -112,15 +104,18 @@ class LifelongCurriculumLearner(BaseCurriculumLearner):
         return self.total_steps <= self.current_step
 
     def stop_curriculum(self):
-        return self.current_step - self.current_phase*self.phase_steps >= self.phase_steps
+        # return self.current_step - self.current_phase*self.phase_total_steps > self.phase_total_steps
+        return self.current_step_of_phase >= self.phase_total_steps
 
     def get_next_task(self):
-        if self.current_step - self.current_phase*self.phase_steps <= self.phase_steps:
-            self.current_task_in_curriculum = (self.current_task_in_curriculum + 1) % len(self.current_curriculum)
-        else:
+        if self.stop_curriculum():
             # new phase
             self.current_phase += 1
+            self.current_step_of_phase = 0
             self.current_curriculum = self.lifelong_curriculum[self.current_phase]
             self.current_task_in_curriculum = 0
+        else:
+            self.current_task_in_curriculum = (self.current_task_in_curriculum + 1) % len(self.current_curriculum)
+
         self.current_task = self.current_curriculum[self.current_task_in_curriculum]
-        return self.get_current_task()
+        return self.get_current_task_file()

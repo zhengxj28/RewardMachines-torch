@@ -42,13 +42,13 @@ class LifelongQRMAgent(QRMAgent):
 
         # TODO: knowledge distillation methods
         loss = torch.Tensor([0.0]).to(self.device)
-        for i in range(self.num_policies):
+        for i in self.activate_policies:
             loss += 0.5 * nn.MSELoss()(Q[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        return {"value_loss": loss.cpu().item() / self.num_policies}
+        return {"value_loss": loss.cpu().item() / len(self.activate_policies)}
 
     def transfer_knowledge(self):
         if self.learning_params.transfer_methods == "none":

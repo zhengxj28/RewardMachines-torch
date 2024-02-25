@@ -29,10 +29,6 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
                                       curriculum.lifelong_curriculum)
 
     def train_episode(self, task):
-        # self.agent.current_phase = self.curriculum.current_phase
-        # # activate networks of current phase and freeze other networks to simulate "lifelong learning"
-        # self.agent.activate_and_freeze_networks()
-
         tester = self.tester
         curriculum = self.curriculum
         agent = self.agent
@@ -60,11 +56,12 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
 
             # Learning
             cur_step = curriculum.get_current_step()
-            if cur_step >= learning_params.learning_starts:
-                if cur_step % learning_params.train_freq == 0:
+            cur_step_of_phase = curriculum.current_step_of_phase
+            if cur_step_of_phase >= learning_params.learning_starts:
+                if cur_step_of_phase % learning_params.train_freq == 0:
                     self.loss_info = agent.learn()
                 # Updating the target network
-                if cur_step % learning_params.target_network_update_freq == 0:
+                if cur_step_of_phase % learning_params.target_network_update_freq == 0:
                     agent.update_target_network()
 
             # Printing
@@ -91,7 +88,7 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
         self.current_phase = self.curriculum.current_phase
         # activate networks of current phase and freeze other networks to simulate "lifelong learning"
         self.activate_and_freeze_networks()
-        # self.agent.buffer.clear()
+        self.agent.buffer.clear()
 
     def activate_and_freeze_networks(self):
         # note that a policy may considered in different phase, due to "equivalent states" of RM
