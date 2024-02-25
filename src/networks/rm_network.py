@@ -87,6 +87,7 @@ class QRMNet(nn.Module):
     def __init__(self, num_obs, num_actions, num_policies, model_params):
         super().__init__()
         self.qrm_net = nn.ModuleList()
+        self.num_actions = num_actions
         self.num_policies = num_policies
         for i in range(num_policies):
             if model_params.tabular_case:
@@ -95,12 +96,20 @@ class QRMNet(nn.Module):
                 q_net = DeepQNet(num_obs, num_actions, model_params)
             self.qrm_net.append(q_net)
 
-    def forward(self, state):
+    def forward(self, state, partial=False, activate_policies=None):
         # return Q-values of all policies
-        q_values = []
-        for i in range(self.num_policies):
-            q_values.append(self.qrm_net[i](state))
-        q_values = torch.stack(q_values, dim=1)
+
+        if partial:
+            batch_size = state.shape[0]
+            q_values = torch.zeros([self.num_policies, batch_size, self.num_actions])
+            for i in activate_policies:
+                q_values[i] = self.qrm_net[i](state)
+            q_values = q_values.transpose(0,1)
+        else:
+            q_values = []
+            for i in range(self.num_policies):
+                q_values.append(self.qrm_net[i](state))
+            q_values = torch.stack(q_values, dim=1)
         # dims of q_values: (batch_size, num_policies, num_actions)
         return q_values
 

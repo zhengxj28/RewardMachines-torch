@@ -100,6 +100,7 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
         #     if phase == self.agent.current_phase: continue
         #     self.agent.qrm_net.freeze(policies)
         activate_policies = self.agent.policies_of_each_phase[self.current_phase]
+        self.agent.activate_policies = activate_policies
         freeze_policies = set([i for i in range(self.agent.num_policies)])-activate_policies
         self.agent.qrm_net.freeze(freeze_policies)
         self.agent.qrm_net.activate(activate_policies)
