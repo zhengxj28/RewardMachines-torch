@@ -27,7 +27,7 @@ class QSRMAgent(BaseRLAgent, SRMAgent):
         num_policies = self.num_policies  # already defined in RMAgent
         # policy_tran_matrix, terminal already defined in SRMAgent
         self.delta = torch.Tensor(self.policy_tran_matrix).to(device)
-        self.srm_done = torch.Tensor(self.terminal).to(device)
+        self.srm_done = torch.Tensor(self.terminal_policy_array).to(device)
         self.qrm_net = QRMNet(num_features, num_actions, num_policies, model_params).to(device)
         self.tar_qrm_net = QRMNet(num_features, num_actions, num_policies, model_params).to(device)
         self.buffer = ReplayBuffer(num_features, num_actions, num_policies, self.num_events, learning_params, device)
@@ -68,7 +68,8 @@ class QSRMAgent(BaseRLAgent, SRMAgent):
                 loss += 0.5 * nn.MSELoss()(Q[:, i], y[:, i])
         else:
             done = torch.zeros_like(nps, device=self.device)
-            done[nps == 0] = 1  # NPs[i]==0 means terminal state
+            for terminal_state in self.terminal_policy:
+                done[nps == terminal_state] = 1
             Q_tar = torch.gather(Q_tar_all, dim=1, index=nps)
             for i in range(self.num_policies):
                 loss += 0.5 * nn.MSELoss()(Q[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])

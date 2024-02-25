@@ -178,10 +178,10 @@ class SRMAgent(RMAgent):
                         ag_com_id = self.reward_components[com_name]
                         self.reward_matrix[ag_com_id, ag_u1, ag_u2] = rm.reward_matrix[com_id, rm_u1, rm_u2]
 
-        self.terminal = np.zeros([self.num_policies])
+        self.terminal_policy_array = np.zeros([self.num_policies])
         for i in range(self.num_policies):
             if i in self.terminal_policy:
-                self.terminal[i] = 1
+                self.terminal_policy_array[i] = 1
 
     def _decompose_reward_machines(self, reward_machines):
         """

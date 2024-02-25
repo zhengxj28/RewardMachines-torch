@@ -3,8 +3,8 @@ from src.temporal_logic.events_complement import complete_events
 
 """
 go to 'a' first, 
-then with probability 0.8 complete the task by 'e', 
-with probability 0.2 complete the task by 'f'
+then with probability 0.2 complete the task by 'e', 
+with probability 0.8 complete the task by 'f'
 """
 
 num_states = 4

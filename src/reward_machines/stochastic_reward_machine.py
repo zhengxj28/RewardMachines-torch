@@ -34,7 +34,7 @@ class StochasticRewardMachine:
         self.reward_matrix = np.array(srm_file.reward_matrix)
         self.reward_components = srm_file.reward_components
         self.delta_r = srm_file.delta_r  # reward-transition function
-        self.terminal = srm_file.terminal  # set of terminal states (they are automatically detected)
+        self.terminal = srm_file.terminal_policy_array  # set of terminal states (they are automatically detected)
         self.pos_terminal = srm_file.pos_terminal
         self.neg_terminal = srm_file.neg_terminal
 
