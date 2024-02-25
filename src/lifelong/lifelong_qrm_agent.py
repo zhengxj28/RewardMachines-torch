@@ -32,7 +32,7 @@ class LifelongQRMAgent(QRMAgent):
         done[nps == 0] = 1  # NPs[i]==0 means terminal state
 
         ind = torch.LongTensor(range(a.shape[0]))
-        Q = self.qrm_net(s1)[ind, :, a.squeeze(1)]
+        Q = self.qrm_net(s1, True, self.activate_policies, self.device)[ind, :, a.squeeze(1)]
         gamma = self.learning_params.gamma
 
         with torch.no_grad():
