@@ -141,8 +141,8 @@ if __name__ == "__main__":
     project_path = os.path.dirname(__file__)
     experiment = os.path.join(project_path, "..", "experiments", world, "tests", filename)
 
+    tester, curriculum, params = get_tester_curriculum(world, experiment, args)
     for seed in args.seeds:
-        tester, curriculum, params = get_tester_curriculum(world, experiment, args)
         learning_params = tester.learning_params
         # saver = Saver(alg_name, tester, curriculum)
         if use_wandb:
