@@ -96,12 +96,12 @@ class QRMNet(nn.Module):
                 q_net = DeepQNet(num_obs, num_actions, model_params)
             self.qrm_net.append(q_net)
 
-    def forward(self, state, partial=False, activate_policies=None):
+    def forward(self, state, partial=False, activate_policies=None, device=None):
         # return Q-values of all policies
 
         if partial:
             batch_size = state.shape[0]
-            q_values = torch.zeros([self.num_policies, batch_size, self.num_actions])
+            q_values = torch.zeros([self.num_policies, batch_size, self.num_actions]).to(device)
             for i in activate_policies:
                 q_values[i] = self.qrm_net[i](state)
             q_values = q_values.transpose(0,1)

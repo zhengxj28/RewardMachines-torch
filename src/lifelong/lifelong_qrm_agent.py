@@ -36,7 +36,8 @@ class LifelongQRMAgent(QRMAgent):
         gamma = self.learning_params.gamma
 
         with torch.no_grad():
-            Q_tar_all = torch.max(self.tar_qrm_net(s2, True, self.activate_policies), dim=2)[0]
+            Q_tar_all = torch.max(
+                self.tar_qrm_net(s2, True, self.activate_policies, self.device), dim=2)[0]
             Q_tar = torch.gather(Q_tar_all, dim=1, index=nps)
 
         # TODO: knowledge distillation methods

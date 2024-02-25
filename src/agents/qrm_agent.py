@@ -56,17 +56,13 @@ class QRMAgent(BaseRLAgent, RMAgent):
 
     def get_action(self, s, eval_mode=False):
         device = self.device
-        if eval_mode:
-            policy_id = self.state2policy[(self.rm_id_eval, self.u_eval)]
-            s = torch.Tensor(s).view(1, -1).to(device)
-            q_value = self.qrm_net(s).detach()[:, policy_id].squeeze()
-            a = torch.argmax(q_value).cpu().item()
-        elif random.random() < self.learning_params.epsilon:
+        policy_id = self.state2policy[(self.rm_id_eval, self.u_eval)]\
+            if eval_mode else self.state2policy[(self.rm_id, self.u)]
+        if not eval_mode and random.random() < self.learning_params.epsilon:
             a = random.choice(range(self.num_actions))
         else:
-            policy_id = self.state2policy[(self.rm_id, self.u)]
             s = torch.Tensor(s).view(1, -1).to(device)
-            q_value = self.qrm_net(s).detach()[:, policy_id].squeeze()
+            q_value = self.qrm_net(s, True, {policy_id}, self.device).detach()[:, policy_id].squeeze()
             a = torch.argmax(q_value).cpu().item()
         return int(a)
 
