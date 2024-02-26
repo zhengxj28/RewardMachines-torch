@@ -7,6 +7,6 @@ True # use_velocities
 False # ball_disappear
 ["../experiments/water/maps/world_0.pkl"] # map
 ["../experiments/water/reward_machines/t%d.txt"%i for i in [1,10,11]]
-["../experiments/water/ltl_formulas/formula%d.txt"%i for i in [1,2,3,4,5,6,8,9,10]]
+["../experiments/water/ltl_formulas/formula%d.txt"%i for i in [1,2,3,11,12,13,9,10,14]]
 ["experiments.water.stochastic_rm.srm%d"%i for i in [1,2,3]]
-[[0,1,2],[3,4,5],[7,8],[6]]   # lifelong curriculum
+[[0,1,2],[3,4,5],[6,7],[8]]   # lifelong curriculum

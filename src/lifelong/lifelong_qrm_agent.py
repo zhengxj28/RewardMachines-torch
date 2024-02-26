@@ -118,5 +118,5 @@ class LifelongQRMAgent(QRMAgent):
     def max_transfer(self, v1, v2):
         v_composed = []
         for data1, data2 in zip(v1, v2):
-            v_composed.append(torch.max(v1, v2))
+            v_composed.append(torch.max(data1, data2))
         return v_composed
