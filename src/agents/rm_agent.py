@@ -19,6 +19,14 @@ class RMAgent:
         t_i = time.time()
         self.state2policy = {}
         policies_to_add = self._decompose_reward_machines(reward_machines)
+        if reward_machines[0].generate_by_ltl:
+            self.policy2ltl = {}
+            for state, policy in self.state2policy.items():
+                rm_id, rm_state = state
+                rm = reward_machines[rm_id]
+                self.policy2ltl[policy] = rm.state2ltl[rm_state]
+            self.ltl2policy = dict([(v, k) for k, v in self.policy2ltl.items()])
+
         print("Decomposing RMs is done! (in %0.2f minutes)" % ((time.time() - t_i) / 60))
         num_policies = len(policies_to_add)
         self.num_policies = num_policies

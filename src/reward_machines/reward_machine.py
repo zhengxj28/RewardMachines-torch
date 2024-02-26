@@ -212,11 +212,11 @@ class RewardMachine:
                 #     continue  # terminal states do not need transition
                 ############### extend states of psi_1, where psi=('then',psi_1,psi_2) ###########
                 # for knowledge transfer only (LSRM algorithm)
-                # if psi[0] == 'then' and psi[1] not in self.ltl2state:
-                #     queue.append(psi[1])
-                #     index = len(self.ltl2state) - (-1 in self.terminal)
-                #     self.ltl2state[psi[1]] = index
-                #     if psi[1] != 'True': new_states.append(index)
+                if psi[0] == 'then' and psi[1] not in self.ltl2state:
+                    queue.append(psi[1])
+                    index = len(self.ltl2state)
+                    self.ltl2state[psi[1]] = index
+                    if psi[1] != 'True': new_states.append(index)
                 ###############################################################
                 self.delta_u[u] = {}
                 for label in self.label_set:

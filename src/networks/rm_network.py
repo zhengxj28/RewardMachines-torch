@@ -95,6 +95,7 @@ class QRMNet(nn.Module):
             else:
                 q_net = DeepQNet(num_obs, num_actions, model_params)
             self.qrm_net.append(q_net)
+        self.init_param_data = [param.data for param in self.qrm_net[0].parameters()]
 
     def forward(self, state, partial=False, activate_policies=None, device=None):
         # return Q-values of all policies
@@ -126,6 +127,9 @@ class QRMNet(nn.Module):
     def re_initialize_networks(self):
         for q_net in self.qrm_net:
             q_net.initialize_params()
+
+    def get_param_data_of_policy(self, policy):
+        return [param.data for param in self.qrm_net[policy].parameters()]
 
 
 class LTLQRMNet(nn.Module):

@@ -24,7 +24,24 @@ class LifelongQRMAgent(QRMAgent):
             for phase, tasks_of_phase in enumerate(lifelong_curriculum):
                 if rm_id in tasks_of_phase:
                     self.policies_of_each_phase[phase].add(policy_id)
-        self.activate_policies = []
+        self.activate_policies = set()
+        self.learned_policies = set()
+
+    def phase_update(self):
+        if self.current_phase > 0:
+            for last_learned_policy in self.policies_of_each_phase[self.current_phase - 1]:
+                self.learned_policies.add(last_learned_policy)
+
+        # activate networks of current phase and freeze other networks to simulate "lifelong learning"
+        # note that a policy may considered in different phase, due to "equivalent states" of RM
+        # must freeze networks of other phases first, then activate networks of current phase
+        activate_policies = self.policies_of_each_phase[self.current_phase]
+        self.activate_policies = activate_policies
+        freeze_policies = set([i for i in range(self.num_policies)]) - activate_policies
+        self.qrm_net.freeze(freeze_policies)
+        self.qrm_net.activate(activate_policies)
+        self.buffer.clear()
+        self.current_phase += 1
 
     def learn(self):
         s1, a, s2, rs, nps, _ = self.buffer.sample(self.learning_params.batch_size)
@@ -55,13 +72,51 @@ class LifelongQRMAgent(QRMAgent):
             # simulate learning from scratch, need to re-initialize networks
             self.qrm_net.re_initialize_networks()
         elif self.learning_params.transfer_methods == "equivalent":
-            # equivalent states have been merged in a policy when initializing the agent
-            # so do nothing here
+            # equivalent states have been merged into the same policy when initializing the agent
+            # so we do not need to do anything
             pass
         # TODO: implement the following methods
         elif self.learning_params.transfer_methods == "value_com":
-            raise NotImplementedError(f"Unknown knowledge transfer methods: {self.learning_params.transfer_methods}")
+            for policy in self.activate_policies:
+                self.transfer_one_policy(policy)
         elif self.learning_params.transfer_methods == "distill":
             raise NotImplementedError(f"Unknown knowledge transfer methods: {self.learning_params.transfer_methods}")
         else:
             raise NotImplementedError(f"Unknown knowledge transfer methods: {self.learning_params.transfer_methods}")
+
+    def transfer_one_policy(self, policy):
+        if policy in self.learned_policies:
+            return
+        values = self.get_composed_values(policy)
+        for tar_data, src_data in zip(self.qrm_net.get_param_data_of_policy(policy), values):
+            tar_data.copy_(src_data)
+
+    def get_composed_values(self, policy):
+        formula = self.policy2ltl[policy]
+        if policy in self.learned_policies:
+            return self.qrm_net.get_param_data_of_policy(policy)
+        elif formula[0] not in ['and', 'or', 'then']:
+            return self.qrm_net.init_param_data
+        else:
+            p1 = self.ltl2policy[formula[1]]  # formula[1] in dfa?
+            p2 = self.ltl2policy[formula[2]]
+            v1 = self.get_composed_values(p1)
+            v2 = self.get_composed_values(p2)
+            if formula[0] == 'and':
+                return self.average_transfer(v1, v2)
+            elif formula[0] == 'or':
+                return self.max_transfer(v1, v2)
+            elif formula[0] == 'then':
+                return v1
+
+    def average_transfer(self, v1, v2):
+        v_composed = []
+        for data1, data2 in zip(v1, v2):
+            v_composed.append((data1+data2)/2)
+        return v_composed
+
+    def max_transfer(self, v1, v2):
+        v_composed = []
+        for data1, data2 in zip(v1, v2):
+            v_composed.append(torch.max(v1, v2))
+        return v_composed

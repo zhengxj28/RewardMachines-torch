@@ -25,10 +25,6 @@ class LifelongAlgo(BaseAlgo, ABC):
         pass
 
     @abstractmethod
-    def transfer_knowledge(self):
-        pass
-
-    @abstractmethod
     def train_episode(self, *args):
         pass
 
