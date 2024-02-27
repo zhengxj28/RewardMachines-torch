@@ -1,11 +1,11 @@
 testing_params:
   test: true
-  test_freq: 10000  #10000
+  test_freq: 1000  #1000
   num_steps: 600
 
 learning_params:
-  total_units: 400  # 100*4
-  step_unit: 10000  # 10000
+  total_units: 2000  # 500*4
+  step_unit: 1000  # 1000
   lr: 0.00001  # 5e-5 seems to be better than 1e-4
   epsilon: 0.1
   gamma: 0.9
