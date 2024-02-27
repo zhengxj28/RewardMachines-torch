@@ -36,8 +36,8 @@ class BaseAlgo(ABC):
         rewards_of_each_task = []
         testing_steps_of_each_task = []
 
-        for rm_file in tester.get_rm_files():
-            reward, testing_steps = self.evaluate_episode(rm_file)
+        for task_file in tester.get_all_task_files():
+            reward, testing_steps = self.evaluate_episode(task_file)
             rewards_of_each_task.append(reward)
             testing_steps_of_each_task.append(testing_steps)
 

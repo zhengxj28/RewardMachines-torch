@@ -1,0 +1,20 @@
+testing_params:
+  test: true
+  test_freq: 1000
+  num_steps: 1000
+
+learning_params:
+  total_units: 400
+  step_unit: 1000
+  gamma: 0.9
+  tabular_case: true
+  epsilon: 0.1
+  lr: 1.0  # 1.0 best in deterministic cases
+  batch_size: 1
+  learning_starts: 1
+  buffer_size: 1
+  target_network_update_freq: 1
+  train_freq: 1
+
+model_params:
+  tabular_case: true

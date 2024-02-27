@@ -150,7 +150,7 @@ class PromptProgAlgo(BaseAlgo):
         t_init = time.time()
         rewards_of_each_task = []
 
-        for rm_file in tester.get_rm_files():
+        for rm_file in tester.get_all_task_files():
             reward = self.evaluate_episode(rm_file)
             rewards_of_each_task.append(reward)
 
@@ -181,7 +181,7 @@ class PromptProgAlgo(BaseAlgo):
         env = self.create_env(task)
         s1 = env.reset()
         
-        task_idx = self.tester.tasks.index(task)
+        task_idx = self.tester.rm_files.index(task)
         nl_file = self.tester.world.nl_files[task_idx]
         with open(nl_file, 'r') as file:
             nl_task = file.readline().replace("\n", "")

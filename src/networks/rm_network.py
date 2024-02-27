@@ -86,26 +86,29 @@ class QRMNet(nn.Module):
     # network for the Q-learning for Reward Machines (QRM) algorithm
     def __init__(self, num_obs, num_actions, num_policies, model_params):
         super().__init__()
-        self.qrm_net = nn.ModuleList()
         self.num_actions = num_actions
         self.num_policies = num_policies
-        for i in range(num_policies):
-            if model_params.tabular_case:
-                q_net = TabularQNet(num_obs, num_actions)
-            else:
-                q_net = DeepQNet(num_obs, num_actions, model_params)
-            self.qrm_net.append(q_net)
-        self.init_param_data = [param.data for param in self.qrm_net[0].parameters()]
+        if model_params.tabular_case:
+            self.qrm_net = nn.ModuleList(
+                [TabularQNet(num_obs, num_actions) for _ in range(num_policies)]
+            )
+            self.default_net = TabularQNet(num_obs, num_actions)
+        else:
+            self.qrm_net = nn.ModuleList(
+                [DeepQNet(num_obs, num_actions, model_params) for _ in range(num_policies)]
+            )
+            self.default_net = DeepQNet(num_obs, num_actions, model_params)
+        for param in self.default_net.parameters():
+            param.requires_grad = False
 
     def forward(self, state, partial=False, activate_policies=None, device=None):
         # return Q-values of all policies
-
         if partial:
             batch_size = state.shape[0]
             q_values = torch.zeros([self.num_policies, batch_size, self.num_actions]).to(device)
             for i in activate_policies:
                 q_values[i] = self.qrm_net[i](state)
-            q_values = q_values.transpose(0,1)
+            q_values = q_values.transpose(0, 1)
         else:
             q_values = []
             for i in range(self.num_policies):
@@ -130,6 +133,9 @@ class QRMNet(nn.Module):
 
     def get_param_data_of_policy(self, policy):
         return [param.data for param in self.qrm_net[policy].parameters()]
+
+    def get_default_param_data(self):
+        return [param.data for param in self.default_net.parameters()]
 
 
 class LTLQRMNet(nn.Module):

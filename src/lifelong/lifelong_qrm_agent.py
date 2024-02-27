@@ -96,7 +96,7 @@ class LifelongQRMAgent(QRMAgent):
         if policy in self.learned_policies:
             return self.qrm_net.get_param_data_of_policy(policy)
         elif formula[0] not in ['and', 'or', 'then']:
-            return self.qrm_net.init_param_data
+            return self.qrm_net.get_default_param_data()
         else:
             p1 = self.ltl2policy[formula[1]]  # formula[1] in dfa?
             p2 = self.ltl2policy[formula[2]]
