@@ -93,14 +93,16 @@ class LifelongQRMAgent(QRMAgent):
         # the list of param data of networks
         data_list = self.get_composed_data_list(policy)
         for tar_data, src_data in zip(self.qrm_net.get_param_data_of_policy(policy), data_list):
-            if self.learning_params.transfer_normalization:
-                src_data = src_data - src_data.mean(0)
             tar_data.copy_(src_data)
 
     def get_composed_data_list(self, policy):
         formula = self.policy2ltl[policy]
         if policy in self.learned_policies:
-            return self.qrm_net.get_param_data_of_policy(policy)
+            data_list = self.qrm_net.get_param_data_of_policy(policy, is_copy=True)
+            if self.learning_params.transfer_normalization:
+                for i, data in enumerate(data_list):
+                    data_list[i] = data - data.mean(0)
+            return data_list
         elif formula[0] not in ['and', 'or', 'then']:
             return self.qrm_net.get_default_param_data()
         else:

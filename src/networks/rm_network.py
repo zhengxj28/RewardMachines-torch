@@ -132,8 +132,11 @@ class QRMNet(nn.Module):
         for q_net in self.qrm_net:
             q_net.initialize_params()
 
-    def get_param_data_of_policy(self, policy):
-        return [deepcopy(param.data) for param in self.qrm_net[policy].parameters()]
+    def get_param_data_of_policy(self, policy, is_copy=False):
+        if is_copy:
+            return [deepcopy(param.data) for param in self.qrm_net[policy].parameters()]
+        else:
+            return [param.data for param in self.qrm_net[policy].parameters()]
 
     def get_default_param_data(self):
         return [deepcopy(param.data) for param in self.default_net.parameters()]
