@@ -15,7 +15,13 @@ learning_params:
   buffer_size: 1
   target_network_update_freq: 1
   train_freq: 1
-  transfer_methods: "none"  # "none"/"equivalent"/"value_com"/"distill"
+  transfer_methods: "value_com"  # "none"/"equivalent"/"value_com"/"distill"
+  # only available for transfer_methods=="value_com"
+  transfer_normalization: true
+  value_com: # compose methods for operators "and", "or", "then" respectively
+    - "average"
+    - "max"
+    - "left"
 
 model_params:
   tabular_case: true

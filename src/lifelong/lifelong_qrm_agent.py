@@ -27,6 +27,9 @@ class LifelongQRMAgent(QRMAgent):
         self.activate_policies = set()
         self.learned_policies = set()
 
+        for com in self.learning_params.value_com:
+            assert com in ["average", "max", "left", "right"]
+
     def phase_update(self):
         if self.current_phase > 0:
             for last_learned_policy in self.policies_of_each_phase[self.current_phase - 1]:
@@ -87,36 +90,46 @@ class LifelongQRMAgent(QRMAgent):
     def transfer_one_policy(self, policy):
         if policy in self.learned_policies:
             return
-        values = self.get_composed_values(policy)
-        for tar_data, src_data in zip(self.qrm_net.get_param_data_of_policy(policy), values):
+        # the list of param data of networks
+        data_list = self.get_composed_data_list(policy)
+        for tar_data, src_data in zip(self.qrm_net.get_param_data_of_policy(policy), data_list):
+            if self.learning_params.transfer_normalization:
+                src_data = src_data - src_data.mean(0)
             tar_data.copy_(src_data)
 
-    def get_composed_values(self, policy):
+    def get_composed_data_list(self, policy):
         formula = self.policy2ltl[policy]
         if policy in self.learned_policies:
             return self.qrm_net.get_param_data_of_policy(policy)
         elif formula[0] not in ['and', 'or', 'then']:
             return self.qrm_net.get_default_param_data()
         else:
-            p1 = self.ltl2policy[formula[1]]  # formula[1] in dfa?
+            # assert formula[1] in self.ltl2policy
+            p1 = self.ltl2policy[formula[1]]
             p2 = self.ltl2policy[formula[2]]
-            v1 = self.get_composed_values(p1)
-            v2 = self.get_composed_values(p2)
+            data_l1 = self.get_composed_data_list(p1)
+            data_l2 = self.get_composed_data_list(p2)
+            # value_com: compose methods for operators "and","or","then" respectively
+            value_com = self.learning_params.value_com
             if formula[0] == 'and':
-                return self.average_transfer(v1, v2)
+                return self.compose_data(data_l1, data_l2, value_com[0])
             elif formula[0] == 'or':
-                return self.max_transfer(v1, v2)
+                return self.compose_data(data_l1, data_l2, value_com[1])
             elif formula[0] == 'then':
-                return v1
+                return self.compose_data(data_l1, data_l2, value_com[2])
 
-    def average_transfer(self, v1, v2):
+    def compose_data(self, data_l1, data_l2, compose_method):
         v_composed = []
-        for data1, data2 in zip(v1, v2):
-            v_composed.append((data1+data2)/2)
-        return v_composed
-
-    def max_transfer(self, v1, v2):
-        v_composed = []
-        for data1, data2 in zip(v1, v2):
-            v_composed.append(torch.max(data1, data2))
+        for data1, data2 in zip(data_l1, data_l2):
+            if compose_method == "average":
+                tar_data = (data1 + data2) / 2
+            elif compose_method == "max":
+                tar_data = torch.max(data1, data2)
+            elif compose_method == "left":
+                tar_data = data1
+            elif compose_method == "right":
+                tar_data = data2
+            else:
+                raise NotImplementedError(f"Unexpected value compose method {compose_method} for knowledge transfer.")
+            v_composed.append(tar_data)
         return v_composed

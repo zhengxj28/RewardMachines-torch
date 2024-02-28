@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from copy import deepcopy
 from src.networks.q_network import TabularQNet, DeepQNet
 from src.networks.transformer import TransformerSyn
 from src.networks.ac_network import ActorNet, CriticNet, ActorNetNormalDist
@@ -132,10 +133,10 @@ class QRMNet(nn.Module):
             q_net.initialize_params()
 
     def get_param_data_of_policy(self, policy):
-        return [param.data for param in self.qrm_net[policy].parameters()]
+        return [deepcopy(param.data) for param in self.qrm_net[policy].parameters()]
 
     def get_default_param_data(self):
-        return [param.data for param in self.default_net.parameters()]
+        return [deepcopy(param.data) for param in self.default_net.parameters()]
 
 
 class LTLQRMNet(nn.Module):

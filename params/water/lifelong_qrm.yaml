@@ -6,7 +6,7 @@ testing_params:
 learning_params:
   total_units: 2000  # 500*4
   step_unit: 1000  # 1000
-  lr: 0.00001  # 5e-5 seems to be better than 1e-4
+  lr: 0.00001  # 1e-5
   epsilon: 0.1
   gamma: 0.9
   buffer_size: 50000
@@ -16,7 +16,13 @@ learning_params:
   learning_starts: 1000
   tabular_case: false
   use_random_maps: false
-  transfer_methods: "none"  # "none"/"equivalent"/"value_com"/"distill"
+  transfer_methods: "value_com"  # "none"/"equivalent"/"value_com"/"distill"
+  # only available for transfer_methods=="value_com"
+  transfer_normalization: false
+  value_com:  # compose methods for operators "and", "or", "then" respectively
+    - "average"
+    - "max"
+    - "left"
 
 model_params:
   tabular_case: false
