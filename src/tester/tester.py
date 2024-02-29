@@ -19,6 +19,8 @@ class Tester:
         self.learning_params = learning_params
         self.testing_params = testing_params
         self.model_params = model_params
+        if args.value_com:
+            self.learning_params.value_com = [args.value_com for _ in range(3)]
         # Reading the file
         self.args = args
         self.experiment = experiment_file

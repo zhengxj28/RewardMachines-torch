@@ -125,6 +125,8 @@ if __name__ == "__main__":
                         help='The name of the saved model.')
     parser.add_argument('--load_model_name', default='', type=str,
                         help='The name of the loaded model.')
+    parser.add_argument('--value_com', default='', type=str,
+                        help='Value composition methods for lifelong learning.')
 
     args = parser.parse_args()
     if not (0 <= args.map <= 10): raise NotImplementedError("The map must be a number between 0 and 10")
