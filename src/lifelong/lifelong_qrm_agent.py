@@ -31,7 +31,10 @@ class LifelongQRMAgent(QRMAgent):
         for com in self.learning_params.value_com:
             assert com in ["average", "max", "left", "right"]
 
-    def load_model(self, model_path):
+    def load_model(self, model_path, learned_task_id):
+        for rm_id in learned_task_id:
+            for rm_state in self.reward_machines[rm_id].U:
+                self.learned_policies.add(self.state2policy[(rm_id, rm_state)])
         file_name = os.path.join(model_path, "qrm_net.pth")
         self.qrm_net.load_state_dict(torch.load(file_name))
 
@@ -89,7 +92,7 @@ class LifelongQRMAgent(QRMAgent):
             pass
         # TODO: implement the following methods
         elif self.learning_params.transfer_methods == "value_com":
-            for policy in self.activate_policies:
+            for policy in self.activate_policies-self.learned_policies:
                 self.transfer_one_policy(policy)
         elif self.learning_params.transfer_methods == "distill":
             raise NotImplementedError(f"Unknown knowledge transfer methods: {self.learning_params.transfer_methods}")

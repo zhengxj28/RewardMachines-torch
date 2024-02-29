@@ -17,7 +17,7 @@ class TesterCraftWorld:
             self.rm_files = eval(lines[3])
             self.ltl_files = eval(lines[4])
             self.srm_files = eval(lines[5])
-            self.lifelong_curriculum = eval(lines[6])
+            self.learned_task_id, self.lifelong_curriculum = eval(lines[6])
 
             # I compute the optimal reward
             # self.optimal = {}

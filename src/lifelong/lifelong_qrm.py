@@ -37,7 +37,8 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
                                   self.tester.load_model_name)
         if not os.path.exists(model_path):
             raise ValueError(f"The path of loaded model {model_path} do not exist.")
-        self.agent.load_model(model_path)
+
+        self.agent.load_model(model_path, self.tester.world.learned_task_id)
 
     def save_model(self):
         if self.tester.save_model_name == "": return

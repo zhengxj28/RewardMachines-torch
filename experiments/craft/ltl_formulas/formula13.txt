@@ -1,0 +1,2 @@
+['a','b','c','d','e','f','g','h']
+('and', ('then', ('eventually', 'd'), ('eventually', 'b')), ('then', ('and', ('eventually', 'a'), ('eventually', 'f')), ('eventually', 'c')))
