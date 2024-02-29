@@ -6,4 +6,5 @@
 /src/wandb
 /data
 /logs
+/models
 .run

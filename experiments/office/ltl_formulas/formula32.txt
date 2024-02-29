@@ -1,0 +1,2 @@
+['a','b','c','d','e','f','g','n']
+('then', ('then', ('until', ('not', 'n'), 'b'), ('until', ('not', 'n'), 'c')), ('then', ('until', ('not', 'n'), 'g'), ('until', ('not', 'n'), 'b')))

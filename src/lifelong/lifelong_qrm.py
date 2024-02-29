@@ -1,6 +1,7 @@
 import random
 import time
 import wandb
+import os
 
 from src.algos.nmdp_algo import NonMDPAlgo
 from src.lifelong.lifelong_algo import LifelongAlgo
@@ -27,6 +28,26 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
                                       tester.task2rm_id,
                                       use_cuda,
                                       curriculum.lifelong_curriculum)
+
+    def load_model(self):
+        if self.tester.load_model_name == "": return
+        dir_path = os.path.join(os.path.dirname(__file__), "..", "..", "models")
+        model_path = os.path.join(dir_path,
+                                  self.tester.args.world,
+                                  self.tester.load_model_name)
+        if not os.path.exists(model_path):
+            raise ValueError(f"The path of loaded model {model_path} do not exist.")
+        self.agent.load_model(model_path)
+
+    def save_model(self):
+        if self.tester.save_model_name == "": return
+        dir_path = os.path.join(os.path.dirname(__file__), "..", "..", "models")
+        model_path = os.path.join(dir_path,
+                                  self.tester.args.world,
+                                  self.tester.save_model_name)
+        if not os.path.exists(model_path):
+            os.makedirs(model_path)
+        self.agent.save_model(model_path)
 
     def train_episode(self, task):
         tester = self.tester

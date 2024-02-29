@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+import os
 
 from src.agents.qrm_agent import QRMAgent
 
@@ -29,6 +30,14 @@ class LifelongQRMAgent(QRMAgent):
 
         for com in self.learning_params.value_com:
             assert com in ["average", "max", "left", "right"]
+
+    def load_model(self, model_path):
+        file_name = os.path.join(model_path, "qrm_net.pth")
+        self.qrm_net.load_state_dict(torch.load(file_name))
+
+    def save_model(self, model_path):
+        file_name = os.path.join(model_path, "qrm_net.pth")
+        torch.save(self.qrm_net.state_dict(), file_name)
 
     def phase_update(self):
         if self.current_phase > 0:

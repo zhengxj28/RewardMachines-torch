@@ -11,6 +11,7 @@ class LifelongAlgo(BaseAlgo, ABC):
 
     def run_experiments(self):
         curriculum = self.curriculum
+        self.load_model()
         self.start_new_phase()
         while not curriculum.stop_learning():
             phase_before = curriculum.current_phase
@@ -19,6 +20,15 @@ class LifelongAlgo(BaseAlgo, ABC):
             if phase_before != phase_after:
                 self.start_new_phase()
             self.train_episode(task)
+        self.save_model()
+
+    @abstractmethod
+    def load_model(self):
+        pass
+
+    @abstractmethod
+    def save_model(self):
+        pass
 
     @abstractmethod
     def start_new_phase(self):

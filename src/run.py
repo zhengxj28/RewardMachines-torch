@@ -119,14 +119,12 @@ if __name__ == "__main__":
     parser.add_argument('--label_noise', default=0.0, type=float,
                         help='Noise of the labelling function, between 0 and 1. For stochastic RM experiments only.')
 
-    # add learning params in command lines for tests
-    # parser.add_argument('--set_params', action='store_true',
-    #                     help='Whether to set learning parameters in command lines.')
-    # parser.add_argument('--lr', default=1e-5, type=float, help='learning rate')
-    # parser.add_argument('--buffer_size', default=1000, type=int, help='buffer size')
-    # parser.add_argument('--batch_size', default=1000, type=int, help='(mini) batch size')
-    # parser.add_argument('--n_updates', default=10, type=int, help='updated times for ppo')
-    # parser.add_argument('--e_coef', default=0, type=float, help='entropy loss coef')
+    parser.add_argument('--wandb_name', default='', type=str,
+                        help='The experiment name shown in wandb.')
+    parser.add_argument('--save_model_name', default='', type=str,
+                        help='The name of the saved model.')
+    parser.add_argument('--load_model_name', default='', type=str,
+                        help='The name of the loaded model.')
 
     args = parser.parse_args()
     if not (0 <= args.map <= 10): raise NotImplementedError("The map must be a number between 0 and 10")
@@ -137,7 +135,7 @@ if __name__ == "__main__":
     map_id = args.map
     use_wandb = args.use_wandb
 
-    filename = "office.txt" if world == "office" else "%s_%d.txt" % (world, map_id)
+    filename = "%s_%d.txt" % (world, map_id)
     project_path = os.path.dirname(__file__)
     experiment = os.path.join(project_path, "..", "experiments", world, "tests", filename)
 
@@ -156,7 +154,7 @@ if __name__ == "__main__":
                 project=args.project,
                 notes=args.notes,
                 group=world,
-                name=alg_name,
+                name=alg_name if args.wandb_name=="" else args.wandb_name,
                 config=wandb_config
             )
         print("*" * 10, "Task Files", "*" * 10)

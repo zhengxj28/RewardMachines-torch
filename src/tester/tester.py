@@ -20,10 +20,15 @@ class Tester:
         self.testing_params = testing_params
         self.model_params = model_params
         # Reading the file
+        self.args = args
         self.experiment = experiment_file
         self.use_wandb = args.use_wandb
         self.label_noise = args.label_noise
         self.last_test_time = time.time()  # last testing time
+
+        self.save_model_name = args.save_model_name
+        self.load_model_name = args.load_model_name
+
         f = open(experiment_file)
         lines = [l.rstrip() for l in f]
         f.close()
