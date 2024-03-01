@@ -64,6 +64,8 @@ def get_tester_curriculum(world, experiment, args):
     with open(config_path, 'r') as file:
         params = yaml.safe_load(file)
 
+    if args.value_com:
+        params['learning_params']['value_com'] = [args.value_com for _ in range(3)]
     tester = Tester(params, experiment, args)
     learning_params = Params(params['learning_params'])
     total_steps = learning_params.step_unit * learning_params.total_units

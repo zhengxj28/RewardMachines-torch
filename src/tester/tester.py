@@ -12,15 +12,13 @@ from src.worlds.reward_machines_env import RewardMachinesEnv
 
 class Tester:
     def __init__(self, params, experiment_file, args):
-        self.params = params
+        # self.params = params
         learning_params = Params(params.get('learning_params', dict()))
         testing_params = Params(params.get('testing_params', dict()))
         model_params = Params(params.get('model_params', dict()))
         self.learning_params = learning_params
         self.testing_params = testing_params
         self.model_params = model_params
-        if args.value_com:
-            self.learning_params.value_com = [args.value_com for _ in range(3)]
         # Reading the file
         self.args = args
         self.experiment = experiment_file
