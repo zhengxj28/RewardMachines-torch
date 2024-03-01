@@ -79,6 +79,7 @@ class LifelongCurriculumLearner(BaseCurriculumLearner):
         super().__init__(tasks, total_steps)
         self.current_task_in_curriculum = 0
         self.num_phases = len(lifelong_curriculum)
+        assert total_steps%self.num_phases==0
         self.phase_total_steps = total_steps // self.num_phases
         self.current_phase = 0
         self.current_step_of_phase = 0
