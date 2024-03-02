@@ -28,3 +28,4 @@ model_params:
   tabular_case: false
   num_hidden_layers: 6
   num_neurons: 64
+  distill_att: "n_emb" # "none"/"n_emb"
