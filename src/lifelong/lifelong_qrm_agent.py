@@ -41,7 +41,7 @@ class LifelongQRMAgent(QRMAgent):
             the attention for not learned policy `i` is att[i][j]=emb[i]*emb[j]
             the Q-value of policy `i` is estimated as Q_i=\sum_{j\in learned} att[i][j]*Q_j
             """
-            self.distill_rate = 1
+            self.distill_rate = learning_params.distill_rate
             from src.networks.attention import NEmbNet
             if learning_params.tabular_case:
                 self.n_emb_net = NEmbNet(num_features, self.num_policies, num_hidden_layers=1,
@@ -69,7 +69,7 @@ class LifelongQRMAgent(QRMAgent):
                     a = torch.argmax(q_value).cpu().item()
             else:
                 with torch.no_grad():
-                    all_q_value = self.qrm_net(s, True, self.learned_policies, self.device)
+                    all_q_value = self.qrm_net(s)
                     all_emb = self.n_emb_net(s, self.learned_policies, self.activate_policies)
                     weighted_q = self.calculate_weighted_Q(all_emb, all_q_value)
                     final_q = self.distill_rate * weighted_q[:, policy_id] + (1 - self.distill_rate) * all_q_value[:, policy_id]
@@ -129,7 +129,9 @@ class LifelongQRMAgent(QRMAgent):
 
         if self.model_params.distill_att == "n_emb" and self.learned_policies:
             with torch.no_grad():
-                current_Q1 = self.qrm_net(s1, True, self.activate_policies, self.device)[ind, :, a.squeeze(1)]
+                # current_Q1 = self.qrm_net(s1, True, self.activate_policies, self.device)[ind, :, a.squeeze(1)]
+                all_Q1 = self.qrm_net(s1)
+                current_Q1 = all_Q1[ind, :, a.squeeze(1)]
                 all_emb2 = self.n_emb_net(s2, self.learned_policies, self.activate_policies)
                 all_Q2_tar = self.tar_qrm_net(s2)  # (batch, n, a)
                 w_Q2_all = torch.max(
@@ -137,7 +139,7 @@ class LifelongQRMAgent(QRMAgent):
                 w_Q2 = torch.gather(w_Q2_all, dim=1, index=nps)
             all_emb1 = self.n_emb_net(s1, self.learned_policies, self.activate_policies)
             # TODO: check
-            all_Q1 = self.qrm_net(s1)
+            # all_Q1 = self.qrm_net(s1)
             w_Q1 = self.calculate_weighted_Q(all_emb1, all_Q1)[ind, :, a.squeeze(1)]
 
             w_q_loss = torch.Tensor([0.0]).to(self.device)

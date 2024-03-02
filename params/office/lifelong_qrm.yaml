@@ -22,6 +22,7 @@ learning_params:
     - "average"
     - "max"
     - "left"
+  distill_rate: 1
 
 model_params:
   tabular_case: true
