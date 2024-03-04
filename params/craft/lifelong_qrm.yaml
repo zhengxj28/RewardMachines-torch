@@ -15,7 +15,7 @@ learning_params:
   buffer_size: 1
   target_network_update_freq: 1
   train_freq: 1
-  transfer_methods: "value_com"  # "none"/"equivalent"/"value_com"/"distill"
+  transfer_methods: "equivalent"  # "none"/"equivalent"/"value_com"/"distill"
   # only available for transfer_methods=="value_com"
   transfer_normalization: true
   value_com: # compose methods for operators "and", "or", "then" respectively
@@ -23,5 +23,14 @@ learning_params:
     - "max"
     - "left"
 
+  # only available for distill_att=="n_emb"
+  ltl_correlation_weight: 0 # 0<=weight<1, the sum weights of correlated policies (Q-values)
+  att_lr: 0.1
+  w_q_loss_rate: 1.0
+  diff_loss_rate: 0
+  distill_rate: 1
+
 model_params:
   tabular_case: true
+  # network structure of attention for distillation
+  distill_att: "n_emb" # "none"/"n_emb"
