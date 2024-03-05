@@ -24,11 +24,12 @@ learning_params:
     - "max"
     - "left"
   # only available for distill_att=="n_emb"
-  ltl_correlation_weight: 10 # 0<=weight<1, the sum weights of correlated policies (Q-values)
-  att_lr: 0.1
+  ltl_correlation_weight: 100 # 0<=weight<1, the sum weights of correlated policies (Q-values)
+  att_lr: 0.001
   w_q_loss_rate: 1.0
   diff_loss_rate: 0
   distill_rate: 1
+  adaptive_distill: true
 
 model_params:
   tabular_case: false

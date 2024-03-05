@@ -79,7 +79,10 @@ class LifelongQRMAgent(QRMAgent):
                     all_emb = self.n_emb_net(s, self.learned_policies, {policy_id}, self.ltl_correlations)
                     weighted_q = self.calculate_weighted_Q(all_emb, all_q_value)
                     phase_complete_rate = self.curriculum.current_step_of_phase/self.curriculum.phase_total_steps
-                    cur_distill_rate = self.distill_rate * (1 - phase_complete_rate)
+                    if self.learning_params.adaptive_distill:
+                        cur_distill_rate = self.distill_rate * (1 - phase_complete_rate)
+                    else:
+                        cur_distill_rate = self.distill_rate
                     final_q = cur_distill_rate * weighted_q[:, policy_id] \
                               + (1 - cur_distill_rate) * all_q_value[:, policy_id]
                     a = torch.argmax(final_q.squeeze()).cpu().item()
