@@ -4,7 +4,7 @@ testing_params:
   num_steps: 1000
 
 learning_params:
-  total_units: 300  # 100*3
+  total_units: 200  # 100*3
   step_unit: 500
   gamma: 0.9
   tabular_case: true
@@ -24,7 +24,7 @@ learning_params:
     - "left"
 
   # only available for distill_att=="n_emb"
-  ltl_correlation_weight: 0 # 0<=weight<1, the sum weights of correlated policies (Q-values)
+  ltl_correlation_weight: 10 # weight>=0, the bias before softmax of correlated policies (Q-values)
   att_lr: 0.1
   w_q_loss_rate: 1.0
   diff_loss_rate: 0

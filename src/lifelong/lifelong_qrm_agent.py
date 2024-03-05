@@ -111,16 +111,15 @@ class LifelongQRMAgent(QRMAgent):
         # get correlations between activate and learned policies for distillation
         if self.model_params.distill_att == "n_emb":
             self.ltl_correlations = torch.zeros([self.num_policies, self.num_policies], device=self.device)
-            p = self.learning_params.ltl_correlation_weight
+            w0 = self.learning_params.ltl_correlation_weight
             n = len(self.learned_policies)
-            for i in self.activate_policies - self.learned_policies:
-                if p * n == 0: break
-                correlated_policies = self.get_correlated_policies(i, weight=p)
+            for policy_id in self.activate_policies - self.learned_policies:
+                if w0 * n == 0: break
+                correlated_policies = self.get_correlated_policies(policy_id, weight=w0)
                 k = len(correlated_policies)
-                # for policy, w in correlated_policies.items():
-                #     # we hope that masked_softmax(bias)=p
-                #     bias = math.log((n - k) * w / (1 - k * w)) if w * k > 0 else 0
-                #     self.ltl_correlations[i, policy] = bias
+                for policy, w in correlated_policies.items():
+                    # we hope that exp(bias)=w
+                    self.ltl_correlations[policy_id, policy] = math.log(w) if w > 0 else 0
 
     def get_correlated_policies(self, policy, weight):
         formula = self.policy2ltl[policy]
@@ -271,4 +270,5 @@ class LifelongQRMAgent(QRMAgent):
 
     def update_target_network(self):
         self.tar_qrm_net.load_state_dict(self.qrm_net.state_dict())
-        self.tar_n_emb_net.load_state_dict(self.n_emb_net.state_dict())
+        if self.model_params.distill_att == "n_emb":
+            self.tar_n_emb_net.load_state_dict(self.n_emb_net.state_dict())
