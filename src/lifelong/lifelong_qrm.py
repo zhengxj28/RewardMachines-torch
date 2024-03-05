@@ -27,7 +27,7 @@ class LifelongQRMAlgo(NonMDPAlgo, LifelongAlgo):
                                       tester.get_reward_machines(),
                                       tester.task2rm_id,
                                       use_cuda,
-                                      curriculum.lifelong_curriculum)
+                                      curriculum)
 
     def load_model(self):
         if self.tester.load_model_name == "": return

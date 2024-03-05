@@ -62,7 +62,7 @@ class RewardMachine:
         """
         if self.generate_by_ltl:
             # TODO: dense rewards for ltl generated rm
-            if self.state2ltl[u2]=='True':
+            if self.state2ltl[u1]!='True' and self.state2ltl[u2]=='True':
                 reward = 1
             else:
                 reward = 0

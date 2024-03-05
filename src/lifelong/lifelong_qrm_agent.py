@@ -15,9 +15,11 @@ class LifelongQRMAgent(QRMAgent):
     """
 
     def __init__(self, num_features, num_actions, learning_params, model_params, reward_machines, task2rm_id, use_cuda,
-                 lifelong_curriculum):
+                 curriculum):
         QRMAgent.__init__(self, num_features, num_actions, learning_params, model_params, reward_machines, task2rm_id,
                           use_cuda)
+        self.curriculum = curriculum
+        lifelong_curriculum = curriculum.lifelong_curriculum
         self.current_phase = 0
         # mark each policy with its corresponding phase
         # to freeze the networks of policies of other phases to simulate "lifelong learning"
@@ -73,11 +75,13 @@ class LifelongQRMAgent(QRMAgent):
                     a = torch.argmax(q_value).cpu().item()
             else:
                 with torch.no_grad():
-                    all_q_value = self.qrm_net(s, True, self.learned_policies | self.activate_policies, self.device)
-                    all_emb = self.n_emb_net(s, self.learned_policies, self.activate_policies, self.ltl_correlations)
+                    all_q_value = self.qrm_net(s, True, self.learned_policies | {policy_id}, self.device)
+                    all_emb = self.n_emb_net(s, self.learned_policies, {policy_id}, self.ltl_correlations)
                     weighted_q = self.calculate_weighted_Q(all_emb, all_q_value)
-                    final_q = self.distill_rate * weighted_q[:, policy_id] \
-                              + (1 - self.distill_rate) * all_q_value[:, policy_id]
+                    phase_complete_rate = self.curriculum.current_step_of_phase/self.curriculum.phase_total_steps
+                    cur_distill_rate = self.distill_rate * (1 - phase_complete_rate)
+                    final_q = cur_distill_rate * weighted_q[:, policy_id] \
+                              + (1 - cur_distill_rate) * all_q_value[:, policy_id]
                     a = torch.argmax(final_q.squeeze()).cpu().item()
         return int(a)
 
@@ -146,16 +150,16 @@ class LifelongQRMAgent(QRMAgent):
         done[nps == 0] = 1  # NPs[i]==0 means terminal state
 
         ind = torch.LongTensor(range(a.shape[0]))
-        Q = self.qrm_net(s1, True, self.activate_policies, self.device)[ind, :, a.squeeze(1)]
+        Q = self.qrm_net(s1, True, self.activate_policies-self.learned_policies, self.device)[ind, :, a.squeeze(1)]
         gamma = self.learning_params.gamma
 
         with torch.no_grad():
             Q_tar_all = torch.max(
-                self.tar_qrm_net(s2, True, self.activate_policies, self.device), dim=2)[0]
+                self.tar_qrm_net(s2, True, self.activate_policies-self.learned_policies, self.device), dim=2)[0]
             Q_tar = torch.gather(Q_tar_all, dim=1, index=nps)
 
         q_loss = torch.Tensor([0.0]).to(self.device)
-        for i in self.activate_policies:
+        for i in self.activate_policies-self.learned_policies:
             q_loss += 0.5 * nn.MSELoss()(Q[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
 
         loss_info = {}
@@ -168,12 +172,11 @@ class LifelongQRMAgent(QRMAgent):
 
         if self.model_params.distill_att == "n_emb" and self.learned_policies:
             with torch.no_grad():
-                # current_Q1 = self.qrm_net(s1, True, self.activate_policies, self.device)[ind, :, a.squeeze(1)]
-                all_Q1 = self.qrm_net(s1)
+                all_Q1 = self.qrm_net(s1, True, self.learned_policies|self.activate_policies, self.device)
                 current_Q1 = all_Q1[ind, :, a.squeeze(1)]
                 all_emb2_tar = self.tar_n_emb_net(s2, self.learned_policies, self.activate_policies,
                                                   self.ltl_correlations)
-                all_Q2_tar = self.tar_qrm_net(s2)  # (batch, n, a)
+                all_Q2_tar = self.tar_qrm_net(s2, True, self.learned_policies|self.activate_policies, self.device)  # (batch, n, a)
                 w_Q2_all = torch.max(
                     self.calculate_weighted_Q(all_emb2_tar, all_Q2_tar), dim=2)[0]
                 w_Q2 = torch.gather(w_Q2_all, dim=1, index=nps)
@@ -189,7 +192,6 @@ class LifelongQRMAgent(QRMAgent):
             loss_info['w_q_loss'] = w_q_loss.cpu().item() / num_updated_policies
             loss_info['diff_loss'] = diff_loss.cpu().item() / num_updated_policies
 
-            # TODO: adaptive distill_rate
             w_q_loss_rate = self.learning_params.w_q_loss_rate
             diff_loss_rate = self.learning_params.diff_loss_rate
             att_loss = w_q_loss_rate * w_q_loss \
@@ -272,3 +274,7 @@ class LifelongQRMAgent(QRMAgent):
         self.tar_qrm_net.load_state_dict(self.qrm_net.state_dict())
         if self.model_params.distill_att == "n_emb":
             self.tar_n_emb_net.load_state_dict(self.n_emb_net.state_dict())
+
+    def update(self, s1, a, s2, info, done, eval_mode=False):
+        QRMAgent.update(self, s1, a, s2, info, done, eval_mode)
+

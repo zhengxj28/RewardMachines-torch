@@ -15,7 +15,6 @@ class NEmbNet(nn.Module):
     def forward(self, state, learned_policies, activate_policies, ltl_correlations):
         # ltl_correlations[i][j] is the correlation of policy
         learned_idx = torch.LongTensor(list(learned_policies)).to(state.device)
-        activate_idx = list(activate_policies)
         # not need to forward emb_net for learned_policies
         # all_emb = torch.zeros([state.shape[0], self.num_policies, self.num_policies], device=state.device)
         all_emb = torch.eye(self.num_policies, device=state.device).repeat(state.shape[0],1,1)
