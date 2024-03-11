@@ -26,10 +26,15 @@ learning_params:
   # only available for distill_att=="n_emb"
   ltl_correlation_weight: 100 # weight>=0, the bias before softmax of correlated policies (Q-values)
   att_lr: 0.1
-  w_q_loss_rate: 1.0
-  diff_loss_rate: 0
-  distill_rate: 1
-  adaptive_distill: true
+  eval_by_student: true
+  # [initial, end], adaptive decrease
+  decrease_speed: 10
+  distill_coefs:
+    - 0
+    - 0
+  teacher_rates:
+    - 1
+    - 0
 
 model_params:
   tabular_case: true

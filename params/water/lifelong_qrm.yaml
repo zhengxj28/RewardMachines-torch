@@ -1,11 +1,11 @@
 testing_params:
   test: true
-  test_freq: 1000  #1000
+  test_freq: 10  #1000
   num_steps: 600
 
 learning_params:
-  total_units: 1500  # 500*4
-  step_unit: 1000  # 1000
+  total_units: 15  # 500*4
+  step_unit: 10  # 1000
   lr: 0.00001  # 1e-5
   epsilon: 0.1
   gamma: 0.9
@@ -24,12 +24,17 @@ learning_params:
     - "max"
     - "left"
   # only available for distill_att=="n_emb"
-  ltl_correlation_weight: 100 # 0<=weight<1, the sum weights of correlated policies (Q-values)
-  att_lr: 0.001
-  w_q_loss_rate: 1.0
-  diff_loss_rate: 0
-  distill_rate: 1
-  adaptive_distill: true
+  ltl_correlation_weight: 100 # weight>=0, the bias before softmax of correlated policies (Q-values)
+  att_lr: 0.1
+  eval_by_student: true
+  # [initial, end], adaptive decrease
+  decrease_speed: 10
+  distill_coefs:
+    - 1
+    - 0
+  teacher_rates:
+    - 1
+    - 0
 
 model_params:
   tabular_case: false
