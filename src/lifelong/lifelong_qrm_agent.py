@@ -161,44 +161,33 @@ class LifelongQRMAgent(QRMAgent):
         done = torch.zeros_like(nps, device=self.device)
         done[nps == 0] = 1  # NPs[i]==0 means terminal state
 
-        use_distill = self.model_params.distill_att == "n_emb" and self.learned_policies
-
         ind = torch.LongTensor(range(a.shape[0]))
-        if use_distill:
-            # need Q-values of learned policies to distill
-            all_Q1 = self.qrm_net(s1, True, self.activate_policies | self.learned_policies, self.device)
-        else:
-            # do not need to distill, only forward activate policies for qrm_loss
-            all_Q1 = self.qrm_net(s1, True, self.activate_policies - self.learned_policies, self.device)
-
-        Q1 = all_Q1[ind, :, a.squeeze(1)]
+        all_Q1 = self.qrm_net(s1, True, self.activate_policies | self.learned_policies, self.device)
+        Q = all_Q1[ind, :, a.squeeze(1)]
         gamma = self.learning_params.gamma
 
         with torch.no_grad():
-            # only forward activate policies for qrm_loss
             Q_tar_all = torch.max(
-                self.tar_qrm_net(s2, True, self.activate_policies - self.learned_policies, self.device), dim=2)[0]
+                self.tar_qrm_net(s2, True, self.activate_policies | self.learned_policies, self.device), dim=2)[0]
             Q_tar = torch.gather(Q_tar_all, dim=1, index=nps)
 
         num_updated_policies = max(1, len(self.activate_policies - self.learned_policies))
         qrm_loss = torch.Tensor([0.0]).to(self.device)
         for i in self.activate_policies - self.learned_policies:
-            qrm_loss += 0.5 * nn.MSELoss()(Q1[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
+            qrm_loss += 0.5 * nn.MSELoss()(Q[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
         loss_info['qrm_loss'] = qrm_loss.cpu().item() / num_updated_policies
         q_net_loss = qrm_loss
 
         # for policy distillation only
-        if use_distill:
+        if self.model_params.distill_att == "n_emb" and self.learned_policies:
             with torch.no_grad():
                 all_emb1 = self.n_emb_net(s1, self.learned_policies, self.activate_policies, self.ltl_correlations)
                 # note that activate but not learned policies will not be weighted
-                # we only use all_Q1[learned_policies] to calculate w_Q1
-                # no effect on backward of qrm_net
                 w_Q1 = self.calculate_weighted_Q(all_emb1, all_Q1)[ind, :, a.squeeze(1)]
             distill_loss = torch.Tensor([0.0]).to(self.device)
             for i in self.activate_policies - self.learned_policies:
-                distill_loss += 0.5 * nn.MSELoss()(Q1[:, i], w_Q1[:, i])
-            loss_info['distill_loss'] = distill_loss.cpu().item() / num_updated_policies
+                distill_loss += 0.5 * nn.MSELoss()(Q[:, i], w_Q1[:, i])
+                loss_info['distill_loss'] = distill_loss.cpu().item() / num_updated_policies
             phase_complete_rate = self.curriculum.current_step_of_phase / self.curriculum.phase_total_steps
             # adaptive (linear) distill coefficient
             distill_coef0, distill_coef1 = self.learning_params.distill_coefs
@@ -210,9 +199,9 @@ class LifelongQRMAgent(QRMAgent):
         self.optimizer.step()
 
         # update attention networks
-        if use_distill:
+        if self.model_params.distill_att == "n_emb" and self.learned_policies:
             with torch.no_grad():
-                all_Q1_nograd = self.qrm_net(s1, True, self.learned_policies | self.activate_policies, self.device)
+                all_Q1 = self.qrm_net(s1, True, self.learned_policies | self.activate_policies, self.device)
                 # current_Q1 = all_Q1[ind, :, a.squeeze(1)]
                 all_emb2_tar = self.tar_n_emb_net(s2, self.learned_policies, self.activate_policies,
                                                   self.ltl_correlations)
@@ -222,7 +211,7 @@ class LifelongQRMAgent(QRMAgent):
                     self.calculate_weighted_Q(all_emb2_tar, all_Q2_tar), dim=2)[0]
                 w_Q2 = torch.gather(w_Q2_all, dim=1, index=nps)
             all_emb1 = self.n_emb_net(s1, self.learned_policies, self.activate_policies, self.ltl_correlations)
-            w_Q1 = self.calculate_weighted_Q(all_emb1, all_Q1_nograd)[ind, :, a.squeeze(1)]
+            w_Q1 = self.calculate_weighted_Q(all_emb1, all_Q1)[ind, :, a.squeeze(1)]
 
             w_q_loss = torch.Tensor([0.0]).to(self.device)
             # diff_loss = torch.Tensor([0.0]).to(self.device)
