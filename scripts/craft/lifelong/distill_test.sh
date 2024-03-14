@@ -1,0 +1,2 @@
+cd src
+nohup python -u run.py --project "Distill" --wandb_name "distill_v2" --algorithm="lifelong_qrm" --load_rm_mode "formulas" --world="craft" --use_wandb --use_cuda --seeds 0 --load_model_name "phase0" --map 6 >../logs/craft/distill.log 2>&1 &
