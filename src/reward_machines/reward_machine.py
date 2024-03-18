@@ -25,12 +25,15 @@ class RewardMachine:
             self._generate_from_ltl(file)
         self.use_rs = use_rs  # flag indicating whether (or not) to use reward shaping
         # TODO: reward shaping for ltl generated rm
-        # if self.use_rs:
-        #     self.gamma = gamma  # this is the gamma from the environment
-        #     self.rs_gamma = gamma  # gamma that is used in the value iteration that compute the shaping potentials
-        #     self.potentials = value_iteration(self.U, self.delta_u, self.delta_r, self.rs_gamma)
-        #     for u in self.potentials:
-        #         self.potentials[u] = -self.potentials[u]
+        if self.use_rs:
+            self.gamma = gamma  # this is the gamma from the environment
+            self.rs_gamma = gamma  # gamma that is used in the value iteration that compute the shaping potentials
+            if not generate_by_ltl:
+                self.potentials = value_iteration(self.U, self.delta_u, self.delta_r, self.rs_gamma)
+            else:
+                self.potentials = self._value_iteration_ltl()
+            for u in self.potentials:
+                self.potentials[u] = -self.potentials[u]
 
         # NOTE(about self.use_rm_matching):
         # In the experiments for the ICML paper, we included a simple graph matching approach 
@@ -38,6 +41,39 @@ class RewardMachine:
         # feature for the IJCAI experiments because it was too expensive and has marginal effects 
         # on the performance of QRM and QRM-RS.
         self.use_rm_matching = False
+
+    def get_ltl_reward(self, u1, u2):
+        # TODO: dense rewards for ltl generated rm
+        if self.state2ltl[u1] != 'True' and self.state2ltl[u2] == 'True':
+            reward = 1
+        else:
+            reward = 0
+        return reward
+
+    def _value_iteration_ltl(self):
+        """
+        Standard value iteration approach.
+        We use it to compute the potentials function for the automated reward shaping
+        """
+        potentials = {}
+        for u_state in self.state2ltl:
+            potentials[u_state] = 0
+        V_error = 1
+        while V_error > 1e-7:
+            V_error = 0
+            for u1 in self.state2ltl:
+                if u1 in self.terminal: continue
+                q_u2 = []
+                for l, u2 in self.delta_u[u1].items():
+                    # if u2 in self.dfa.terminal: break
+                    r = self.get_ltl_reward(u1, u2)
+                    q_u2.append(r + self.gamma * potentials[u2])
+                v_new = max(q_u2)
+                V_error = max([V_error, abs(v_new - potentials[u1])])
+                potentials[u1] = v_new
+        for u in potentials:
+            potentials[u] = -potentials[u]
+        return potentials
 
     # Public methods -----------------------------------
 
@@ -61,11 +97,7 @@ class RewardMachine:
         The extra reward given by RS is included only during training!
         """
         if self.generate_by_ltl:
-            # TODO: dense rewards for ltl generated rm
-            if self.state2ltl[u1]!='True' and self.state2ltl[u2]=='True':
-                reward = 1
-            else:
-                reward = 0
+            reward = self.get_ltl_reward(u1, u2)
         else:
             # Getting reward from the RM
             reward = 0  # NOTE: if the agent falls from the reward machine it receives reward of zero
@@ -231,8 +263,8 @@ class RewardMachine:
                     u_ = self.ltl2state[psi_]
                     self.delta_u[u][label] = u_
 
-        # self.state2ltl = dict([(v, k) for k, v in self.ltl2state.items()])
-        self.state2ltl = [k for k in self.ltl2state.keys()]
+        self.state2ltl = dict([(v, k) for k, v in self.ltl2state.items()])
+        # self.state2ltl = [k for k in self.ltl2state.keys()]
         return new_states
 
 

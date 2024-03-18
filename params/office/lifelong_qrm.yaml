@@ -4,7 +4,7 @@ testing_params:
   num_steps: 1000
 
 learning_params:
-  total_units: 200  # 100*3
+  total_units: 300  # 100*3
   step_unit: 500
   gamma: 0.9
   tabular_case: true

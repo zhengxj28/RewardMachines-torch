@@ -109,7 +109,6 @@ if __name__ == "__main__":
                         help='This parameter indicated which map to use. It must be a number between 0 and 10.')
     parser.add_argument('--seeds', nargs='+', type=int, default=[0],
                         help='A list of random seeds to run experiments.')
-    # use_rs (reward shaping) for RM methods are discarded
     parser.add_argument('--use_rs', action='store_true',
                         help='Whether to use reward shaping of reward machines.')
     parser.add_argument('--use_wandb', action='store_true',
