@@ -71,8 +71,8 @@ class RewardMachine:
                 v_new = max(q_u2)
                 V_error = max([V_error, abs(v_new - potentials[u1])])
                 potentials[u1] = v_new
-        for u in potentials:
-            potentials[u] = -potentials[u]
+        # for u in potentials:
+        #     potentials[u] = -potentials[u]
         return potentials
 
     # Public methods -----------------------------------

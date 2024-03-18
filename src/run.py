@@ -64,13 +64,14 @@ def get_tester_curriculum(world, experiment, args):
     with open(config_path, 'r') as file:
         params = yaml.safe_load(file)
 
-    if args.value_com in ['average', 'max', 'left', 'right']:
-        params['learning_params']['transfer_methods'] = "value_com"
-        params['learning_params']['value_com'] = [args.value_com for _ in range(3)]
-    elif args.value_com == 'none':
-        params['learning_params']['transfer_methods'] = "none"
-    elif args.value_com:
-        raise ValueError(f"Unexpected value_com in commands: {args.value_com}")
+    # if args.value_com in ['average', 'max', 'left', 'right']:
+    #     params['learning_params']['transfer_methods'] = "value_com"
+    #     params['learning_params']['value_com'] = [args.value_com for _ in range(3)]
+    # elif args.value_com == 'none':
+    #     params['learning_params']['transfer_methods'] = "none"
+    # elif args.value_com:
+    #     raise ValueError(f"Unexpected value_com in commands: {args.value_com}")
+
     tester = Tester(params, experiment, args)
     learning_params = Params(params['learning_params'])
     total_steps = learning_params.step_unit * learning_params.total_units
@@ -154,6 +155,7 @@ if __name__ == "__main__":
         if use_wandb:
             wandb_config = copy.deepcopy(params)
             wandb_config['use_cuda'] = args.use_cuda
+            wandb_config['use_rs'] = args.use_rs
             wandb_config['seed'] = seed
             wandb_config['label_noise'] = args.label_noise
             wandb_config['load_rm_mode'] = args.load_rm_mode
