@@ -15,7 +15,7 @@ learning_params:
   buffer_size: 1
   target_network_update_freq: 1
   train_freq: 1
-  transfer_methods: "none"  # "none"/"equivalent"/"value_com"
+  transfer_methods: "value_com"  # "none"/"equivalent"/"value_com"
   # only available for transfer_methods=="value_com"
   transfer_normalization: true
   value_com: # compose methods for operators "and", "or", "then" respectively
@@ -25,7 +25,7 @@ learning_params:
 
   # only available for distill_att=="n_emb"
   ltl_correlation_weight: 100 # weight>=0, the bias before softmax of correlated policies (Q-values)
-  att_lr: 0.1
+  att_lr: 0
   eval_by_student: true
   # [initial, end], adaptive decrease
   decrease_speed: 10

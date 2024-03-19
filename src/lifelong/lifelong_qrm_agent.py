@@ -108,7 +108,7 @@ class LifelongQRMAgent(QRMAgent):
         torch.save(self.qrm_net.state_dict(), file_name)
 
     def phase_update(self):
-        if self.current_phase > 0:
+        if self.current_phase > 0 and self.learning_params.transfer_methods!="none":
             for last_learned_policy in self.policies_of_each_phase[self.current_phase - 1]:
                 self.learned_policies.add(last_learned_policy)
 
