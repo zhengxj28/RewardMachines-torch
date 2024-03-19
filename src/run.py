@@ -45,7 +45,7 @@ def run_experiment(args, tester, curriculum):
     elif alg_name == "sacrm":
         from src.algos.sacrm import SACRMAlgo
         algo = SACRMAlgo(tester, curriculum, show_print, use_cuda)
-    elif alg_name == "lifelong_qrm":
+    elif alg_name in ["lifelong_qrm", "distill", "lsrm"]:
         from src.lifelong.lifelong_qrm import LifelongQRMAlgo
         algo = LifelongQRMAlgo(tester, curriculum, show_print, use_cuda)
     else:
@@ -77,7 +77,7 @@ def get_tester_curriculum(world, experiment, args):
     total_steps = learning_params.step_unit * learning_params.total_units
 
     # Setting the curriculum learner
-    if args.algorithm in ["lifelong_qrm"]:
+    if args.algorithm in ["lifelong_qrm", "distill", "lsrm"]:
         curriculum = LifelongCurriculumLearner(tester.tasks,
                                                tester.world.lifelong_curriculum,
                                                total_steps=total_steps
