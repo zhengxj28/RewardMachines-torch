@@ -72,8 +72,8 @@ class LifelongQRMAgent(QRMAgent):
             a = random.choice(range(self.num_actions))
         else:
             s = torch.Tensor(s).view(1, -1).to(device)
-            if (eval_mode and self.learning_params.eval_by_student) \
-                    or self.model_params.distill_att == "none" \
+            if self.model_params.distill_att == "none"\
+                    or (eval_mode and self.learning_params.eval_by_student) \
                     or (not self.learned_policies) \
                     or policy_id in self.learned_policies:
                 with torch.no_grad():
@@ -185,9 +185,9 @@ class LifelongQRMAgent(QRMAgent):
 
         num_updated_policies = max(1, len(self.activate_policies - self.learned_policies))
         qrm_loss = torch.Tensor([0.0]).to(self.device)
-        for i in self.activate_policies - self.learned_policies:
+        for i in self.activate_policies:
             qrm_loss += 0.5 * nn.MSELoss()(Q[:, i], rs[:, i] + gamma * Q_tar[:, i] * (1 - done)[:, i])
-        loss_info['qrm_loss'] = qrm_loss.cpu().item() / num_updated_policies
+        loss_info['qrm_loss'] = qrm_loss.cpu().item() / len(self.activate_policies)
         q_net_loss = qrm_loss
 
         # for policy distillation only
