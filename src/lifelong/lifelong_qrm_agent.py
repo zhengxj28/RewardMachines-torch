@@ -38,8 +38,9 @@ class LifelongQRMAgent(QRMAgent):
         self.activate_policies = set()
         self.learned_policies = set()
 
-        for com in self.learning_params.value_com:
-            assert com in ["average", "max", "left", "right"]
+        if self.learning_params.transfer_methods == "value_com":
+            for com in self.learning_params.value_com:
+                assert com in ["average", "max", "left", "right"]
 
         assert model_params.distill_att in ["none", "n_emb", "fixed"]
         if model_params.distill_att == "n_emb":
