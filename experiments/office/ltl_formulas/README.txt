@@ -1,4 +1,4 @@
-formula 1-6: sequential tasks for lifelong learning
+formula 1-7: sequential tasks for lifelong learning
 formula 11-14: original reward machines
 formula 21-27: source tasks for value composition research
 t1=('then', ('until', ('not', 'n'), 'f'), ('until', ('not', 'n'), 'g'))
