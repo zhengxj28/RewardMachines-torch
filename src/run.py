@@ -154,6 +154,7 @@ if __name__ == "__main__":
         # saver = Saver(alg_name, tester, curriculum)
         if use_wandb:
             wandb_config = copy.deepcopy(params)
+            wandb_config['map'] = args.map
             wandb_config['use_cuda'] = args.use_cuda
             wandb_config['use_rs'] = args.use_rs
             wandb_config['seed'] = seed
