@@ -1,2 +1,2 @@
 ['a','b','c','d','e','f','g','n']
-('then', ('until', ('not', 'n'), 'b'), ('until', ('not', 'n'), 'a'))
+('or', ('then', ('until', ('not', 'n'), 'e'), ('until', ('not', 'n'), 'g')), ('then', ('until', ('not', 'n'), 'f'), ('until', ('not', 'n'), 'g')))
