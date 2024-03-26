@@ -5,11 +5,17 @@ import numpy as np
 import csv
 
 colors = {
-    'DISTILL': '#EDB732',
-    'QRM-RS': '#C565C7',
-    'QRM': '#1f77b4',
-    'EQUIV': '#00CED1',
-    'LSRM': '#FF6347'
+    'DISTILL': '#EDB732',  # 黄
+    'QRM-RS': '#C565C7',  # 紫
+    'QRM': '#1F77B4',  # 蓝
+    'EQUIV': '#008800',  # 绿
+    'LSRM': '#FF6347',  # 红
+
+    'LSRM-nsr': '#1F77B4',  # 蓝
+    'LSRM-nstd': '#C565C7',  # 紫
+    'LSRM-and-max': '#008800',  # 绿
+    'LSRM-or-max': '#EDB732',   # 黄
+    'LSRM-then-right': '#C10066'    # 品红
 }
 
 
@@ -65,7 +71,11 @@ def plot_curves(filename, **kwargs):
         y_max = max(y_max, max(high))
         num_units = len(avg)
         x = [i for i in range(num_units)]
-        display_name = "LSRM（本文）" if curve_name == "LSRM" else curve_name
+        if kwargs.get('mark_LSRM', True):
+            display_name = "LSRM（本文）" if curve_name=="LSRM" else curve_name
+        else:
+            display_name = curve_name
+        # display_name = "LSRM（本文）" if curve_name == "LSRM" else curve_name
         plt.plot(x, avg, linewidth=2, label=display_name, c=colors[curve_name])
         plt.fill_between(x, low, high, color=colors[curve_name], alpha=0.25)
 
@@ -87,14 +97,13 @@ def plot_curves(filename, **kwargs):
     # plt.locator_params(axis='x', nbins=5)
     plt.gca().set_facecolor('#EBF0F2')
     if kwargs['show_legend']:
-        plt.legend(loc='lower right', fontsize=int(0.8 * fontsize))
+        plt.legend(loc=kwargs.get('legend_loc', 'lower right'), fontsize=int(0.8 * fontsize))
 
     for spine in plt.gca().spines.values():
         spine.set_color('none')
     if kwargs['savefig']:
         plt.savefig(kwargs['savefig'], bbox_inches='tight')
-    else:
-        plt.show()
+    plt.show()
 
 
 def plot_office():
@@ -132,5 +141,235 @@ def plot_office():
                 )
 
 
+def plot_craft():
+    env_name = 'craft'
+    figsize = (5, 4)
+    plot_curves(filename='phase0.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.95,
+                show_legend=False,
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/craft_p0.pdf'
+                )
+    plot_curves(filename='phase1.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.95,
+                show_legend=False,
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/craft_p1.pdf'
+                )
+    plot_curves(filename='phase2.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.95,
+                show_legend=False,
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/craft_p2.pdf'
+                )
+    plot_curves(filename='phase3.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.95,
+                show_legend=True,
+                legend_loc="upper left",
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/craft_p3.pdf'
+                )
+
+
+def plot_water():
+    env_name = 'water'
+    figsize = (5, 4)
+    plot_curves(filename='phase0.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=False,
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/water_p0.pdf'
+                )
+    plot_curves(filename='phase1.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=False,
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/water_p1.pdf'
+                )
+    plot_curves(filename='phase2.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=False,
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/water_p2.pdf'
+                )
+    plot_curves(filename='phase3.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=True,
+                curve_names=["QRM", "QRM-RS", "EQUIV", "DISTILL", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/water_p3.pdf'
+                )
+
+def plot_ab_office():
+    env_name = 'office'
+    figsize = (5, 4)
+    plot_curves(filename='ab_phase0.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.5,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/ab_office_p0.pdf'
+                )
+    plot_curves(filename='ab_phase1.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.5,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/ab_office_p1.pdf'
+                )
+    plot_curves(filename='ab_phase2.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.5,
+                show_legend=True,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/ab_office_p2.pdf'
+                )
+
+def plot_ab_water():
+    env_name = 'water'
+    figsize = (5, 4)
+    plot_curves(filename='ab_phase0.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/ab_water_p0.pdf'
+                )
+    plot_curves(filename='ab_phase1.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/ab_water_p1.pdf'
+                )
+    plot_curves(filename='ab_phase2.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/ab_water_p2.pdf'
+                )
+    plot_curves(filename='ab_phase3.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=True,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.01,
+                title='',
+                savefig='../figures_cn/ab_water_p3.pdf'
+                )
+
+def plot_ab_craft():
+    env_name = 'craft'
+    figsize = (5, 4)
+    plot_curves(filename='ab_phase0.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.95,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/ab_craft_p0.pdf'
+                )
+    plot_curves(filename='ab_phase1.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.95,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/ab_craft_p1.pdf'
+                )
+    plot_curves(filename='ab_phase2.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=False,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/ab_craft_p2.pdf'
+                )
+    plot_curves(filename='ab_phase3.csv',
+                env_name=env_name,
+                figsize=figsize,
+                smooth_weight=0.99,
+                show_legend=True,
+                mark_LSRM=False,
+                curve_names=["LSRM-nsr", "LSRM-nstd", "LSRM-and-max", "LSRM-or-max", "LSRM-then-right", "LSRM"],
+                legend_loc="upper left",
+                y_tick_interval=0.005,
+                title='',
+                savefig='../figures_cn/ab_craft_p3.pdf'
+                )
+
+
 if __name__ == "__main__":
-    plot_office()
+    # plot_office()
+    # plot_craft()
+    # plot_water()
+    # plot_ab_office()
+    # plot_ab_craft()
+    plot_ab_water()
